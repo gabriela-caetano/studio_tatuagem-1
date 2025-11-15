@@ -56,12 +56,7 @@ class RelatorioController {
 
       query += ' ORDER BY a.data_agendamento DESC, a.hora_inicio DESC';
 
-      const agendamentos = await new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows);
-        });
-      });
+      const [agendamentos] = await db.execute(query, params);
 
       // Calcular estatísticas
       const estatisticas = {
@@ -156,12 +151,7 @@ class RelatorioController {
         });
       }
 
-      const dados = await new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows);
-        });
-      });
+      const [dados] = await db.query(query, params);
 
       // Calcular totais
       const totais = {
@@ -235,12 +225,7 @@ class RelatorioController {
       query += ' GROUP BY t.id, t.nome, t.especialidades';
       query += ' ORDER BY faturamento DESC';
 
-      const tatuadores = await new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows);
-        });
-      });
+      const [tatuadores] = await db.execute(query, params);
 
       // Calcular totais gerais
       const totais = {
@@ -289,12 +274,7 @@ class RelatorioController {
         LIMIT ?
       `;
 
-      const clientes = await new Promise((resolve, reject) => {
-        db.all(query, [parseInt(limite)], (err, rows) => {
-          if (err) return reject(err);
-          resolve(rows);
-        });
-      });
+      const [clientes] = await db.execute(query, [parseInt(limite)]);
 
       return res.json({
         total: clientes.length,
@@ -314,69 +294,66 @@ class RelatorioController {
       const hoje = new Date().toISOString().split('T')[0];
 
       // Agendamentos de hoje
-      const agendamentosHoje = await new Promise((resolve, reject) => {
-        db.get(
-          `SELECT COUNT(*) as total FROM agendamentos WHERE DATE(data_agendamento) = ? AND status NOT IN ('cancelado')`,
-          [hoje],
-          (err, row) => {
-            if (err) return reject(err);
-            resolve(row);
-          }
-        );
-      });
+      const [agendamentosHoje] = await db.execute(`
+        SELECT COUNT(*) as total
+        FROM agendamentos
+        WHERE DATE(data_agendamento) = ?
+        AND status NOT IN ('cancelado')
+      `, [hoje]);
 
       // Próximos agendamentos
-      const proximosAgendamentos = await new Promise((resolve, reject) => {
-        db.all(
-          `SELECT a.*, c.nome as cliente_nome, t.nome as tatuador_nome FROM agendamentos a LEFT JOIN clientes c ON a.cliente_id = c.id LEFT JOIN tatuadores t ON a.tatuador_id = t.id WHERE a.data_agendamento >= ? AND a.status IN ('agendado', 'confirmado') ORDER BY a.data_agendamento ASC, a.hora_inicio ASC LIMIT 5`,
-          [hoje],
-          (err, rows) => {
-            if (err) return reject(err);
-            resolve(rows);
-          }
-        );
-      });
+      const [proximosAgendamentos] = await db.execute(`
+        SELECT 
+          a.*,
+          c.nome as cliente_nome,
+          t.nome as tatuador_nome
+        FROM agendamentos a
+        LEFT JOIN clientes c ON a.cliente_id = c.id
+        LEFT JOIN tatuadores t ON a.tatuador_id = t.id
+        WHERE a.data_agendamento >= ?
+        AND a.status IN ('agendado', 'confirmado')
+        ORDER BY a.data_agendamento ASC, a.hora_inicio ASC
+        LIMIT 5
+      `, [hoje]);
 
-      // Estatísticas do mês atual (SQLite: strftime)
+      // Estatísticas do mês atual
       const mesAtual = new Date().getMonth() + 1;
       const anoAtual = new Date().getFullYear();
-      const estatisticasMes = await new Promise((resolve, reject) => {
-        db.get(
-          `SELECT COUNT(*) as total_agendamentos, COUNT(CASE WHEN status = 'concluido' THEN 1 END) as concluidos, COUNT(CASE WHEN status = 'cancelado' THEN 1 END) as cancelados, SUM(CASE WHEN status = 'concluido' THEN valor_final ELSE 0 END) as faturamento FROM agendamentos WHERE strftime('%Y', data_agendamento) = ? AND strftime('%m', data_agendamento) = ?`,
-          [anoAtual.toString(), mesAtual.toString().padStart(2, '0')],
-          (err, row) => {
-            if (err) return reject(err);
-            resolve(row);
-          }
-        );
-      });
+
+      const [estatisticasMes] = await db.execute(`
+        SELECT 
+          COUNT(*) as total_agendamentos,
+          COUNT(CASE WHEN status = 'concluido' THEN 1 END) as concluidos,
+          COUNT(CASE WHEN status = 'cancelado' THEN 1 END) as cancelados,
+          SUM(CASE WHEN status = 'concluido' THEN valor_final ELSE 0 END) as faturamento
+        FROM agendamentos
+        WHERE YEAR(data_agendamento) = ? AND MONTH(data_agendamento) = ?
+      `, [anoAtual, mesAtual]);
 
       // Total de clientes ativos
-      const totalClientes = await new Promise((resolve, reject) => {
-        db.get(`SELECT COUNT(*) as total FROM clientes WHERE ativo = 1`, [], (err, row) => {
-          if (err) return reject(err);
-          resolve(row);
-        });
-      });
+      const [totalClientes] = await db.execute(`
+        SELECT COUNT(*) as total
+        FROM clientes
+        WHERE ativo = 1
+      `);
 
       // Total de tatuadores ativos
-      const totalTatuadores = await new Promise((resolve, reject) => {
-        db.get(`SELECT COUNT(*) as total FROM tatuadores WHERE ativo = 1`, [], (err, row) => {
-          if (err) return reject(err);
-          resolve(row);
-        });
-      });
+      const [totalTatuadores] = await db.execute(`
+        SELECT COUNT(*) as total
+        FROM tatuadores
+        WHERE ativo = 1
+      `);
 
       return res.json({
-        agendamentos_hoje: agendamentosHoje.total,
+        agendamentos_hoje: agendamentosHoje[0].total,
         proximos_agendamentos: proximosAgendamentos,
         estatisticas_mes_atual: {
-          ...estatisticasMes,
+          ...estatisticasMes[0],
           mes: mesAtual,
           ano: anoAtual
         },
-        total_clientes: totalClientes.total,
-        total_tatuadores: totalTatuadores.total
+        total_clientes: totalClientes[0].total,
+        total_tatuadores: totalTatuadores[0].total
       });
     } catch (error) {
       console.error('Erro ao gerar dashboard:', error);

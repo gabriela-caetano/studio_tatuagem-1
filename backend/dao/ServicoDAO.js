@@ -3,50 +3,59 @@ const Servico = require('../models/Servico');
 
 class ServicoDAO {
   // Criar novo serviço
-  static create(servicoData) {
-    return new Promise((resolve, reject) => {
+  static async create(servicoData) {
+    try {
       const query = `
         INSERT INTO servicos (
           nome, descricao, preco_base, duracao_estimada
         ) VALUES (?, ?, ?, ?)
       `;
+      
       const values = [
         servicoData.nome || null,
         servicoData.descricao || null,
         servicoData.preco_base || null,
         servicoData.duracao_estimada || null
       ];
-      db.run(query, values, function (err) {
-        if (err) return reject(err);
-        ServicoDAO.findById(this.lastID)
-          .then(servico => resolve(servico))
-          .catch(reject);
-      });
-    });
+
+      const [result] = await db.query(query, values);
+      return await this.findById(result.insertId);
+    } catch (error) {
+      console.error('ServicoDAO.create:', error);
+      throw error;
+    }
   }
 
   // Buscar serviço por ID
-  static findById(id) {
-    return new Promise((resolve, reject) => {
+  static async findById(id) {
+    try {
       const query = 'SELECT * FROM servicos WHERE id = ? AND ativo = 1';
-      db.get(query, [id], (err, row) => {
-        if (err) return reject(err);
-        if (!row) return resolve(null);
-        resolve(new Servico(row));
-      });
-    });
+      const [rows] = await db.query(query, [id]);
+      
+      if (rows.length === 0) {
+        return null;
+      }
+      
+      return new Servico(rows[0]);
+    } catch (error) {
+      console.error('ServicoDAO.findById:', error);
+      throw error;
+    }
   }
 
   // Listar todos os serviços
-  static findAll(page = 1, limit = 10, search = '') {
-    return new Promise((resolve, reject) => {
+  static async findAll(page = 1, limit = 10, search = '') {
+    try {
+      // Converter para inteiros para evitar erro no MySQL
       const pageNum = parseInt(page) || 1;
       const limitNum = parseInt(limit) || 10;
       const offset = (pageNum - 1) * limitNum;
+      
       let query = 'SELECT * FROM servicos WHERE ativo = 1';
       let countQuery = 'SELECT COUNT(*) as total FROM servicos WHERE ativo = 1';
       const queryParams = [];
       const countParams = [];
+      
       if (search) {
         query += ' AND (nome LIKE ? OR descricao LIKE ?)';
         countQuery += ' AND (nome LIKE ? OR descricao LIKE ?)';
@@ -54,41 +63,45 @@ class ServicoDAO {
         queryParams.push(searchParam, searchParam);
         countParams.push(searchParam, searchParam);
       }
+      
       query += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
       queryParams.push(limitNum, offset);
-      db.all(query, queryParams, (err, rows) => {
-        if (err) return reject(err);
-        db.get(countQuery, countParams, (err2, countResult) => {
-          if (err2) return reject(err2);
-          const servicos = rows.map(row => new Servico(row));
-          resolve({
-            data: servicos,
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              total: countResult ? countResult.total : 0,
-              totalPages: countResult ? Math.ceil(countResult.total / limitNum) : 1
-            }
-          });
-        });
-      });
-    });
+
+      const [rows] = await db.query(query, queryParams);
+      const [countResult] = await db.query(countQuery, countParams);
+      
+      const servicos = rows.map(row => new Servico(row));
+
+      return {
+        data: servicos,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: countResult[0].total,
+          totalPages: Math.ceil(countResult[0].total / limitNum)
+        }
+      };
+    } catch (error) {
+      console.error('ServicoDAO.findAll:', error);
+      throw error;
+    }
   }
 
   // Listar serviços ativos (simplificado)
-  static findAllActive() {
-    return new Promise((resolve, reject) => {
+  static async findAllActive() {
+    try {
       const query = 'SELECT id, nome, descricao, preco_base, duracao_estimada FROM servicos WHERE ativo = 1 ORDER BY nome ASC';
-      db.all(query, [], (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows.map(row => new Servico(row)));
-      });
-    });
+      const [rows] = await db.query(query);
+      return rows.map(row => new Servico(row));
+    } catch (error) {
+      console.error('ServicoDAO.findAllActive:', error);
+      throw error;
+    }
   }
 
   // Atualizar serviço
-  static update(id, servicoData) {
-    return new Promise((resolve, reject) => {
+  static async update(id, servicoData) {
+    try {
       const query = `
         UPDATE servicos SET 
           nome = ?, 
@@ -97,6 +110,7 @@ class ServicoDAO {
           duracao_estimada = ?
         WHERE id = ? AND ativo = 1
       `;
+      
       const values = [
         servicoData.nome || null,
         servicoData.descricao || null,
@@ -104,40 +118,49 @@ class ServicoDAO {
         servicoData.duracao_estimada || null,
         id
       ];
-      db.run(query, values, function (err) {
-        if (err) return reject(err);
-        ServicoDAO.findById(id)
-          .then(servico => resolve(servico))
-          .catch(reject);
-      });
-    });
+
+      const [result] = await db.query(query, values);
+      
+      if (result.affectedRows === 0) {
+        return null;
+      }
+      
+      return await this.findById(id);
+    } catch (error) {
+      console.error('ServicoDAO.update:', error);
+      throw error;
+    }
   }
 
   // Excluir serviço (soft delete)
-  static delete(id) {
-    return new Promise((resolve, reject) => {
+  static async delete(id) {
+    try {
       const query = 'UPDATE servicos SET ativo = 0 WHERE id = ?';
-      db.run(query, [id], function (err) {
-        if (err) return reject(err);
-        resolve(this.changes > 0);
-      });
-    });
+      const [result] = await db.query(query, [id]);
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('ServicoDAO.delete:', error);
+      throw error;
+    }
   }
 
   // Reativar serviço
-  static reactivate(id) {
-    return new Promise((resolve, reject) => {
+  static async reactivate(id) {
+    try {
       const query = 'UPDATE servicos SET ativo = 1 WHERE id = ?';
-      db.run(query, [id], function (err) {
-        if (err) return reject(err);
-        resolve(this.changes > 0);
-      });
-    });
+      const [result] = await db.query(query, [id]);
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('ServicoDAO.reactivate:', error);
+      throw error;
+    }
   }
 
   // Buscar serviços por faixa de preço
-  static findByPriceRange(minPrice, maxPrice) {
-    return new Promise((resolve, reject) => {
+  static async findByPriceRange(minPrice, maxPrice) {
+    try {
       const query = `
         SELECT * FROM servicos 
         WHERE ativo = 1 
@@ -145,11 +168,13 @@ class ServicoDAO {
         AND preco_base <= ?
         ORDER BY preco_base ASC
       `;
-      db.all(query, [minPrice, maxPrice], (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows.map(row => new Servico(row)));
-      });
-    });
+      
+      const [rows] = await db.query(query, [minPrice, maxPrice]);
+      return rows.map(row => new Servico(row));
+    } catch (error) {
+      console.error('ServicoDAO.findByPriceRange:', error);
+      throw error;
+    }
   }
 }
 

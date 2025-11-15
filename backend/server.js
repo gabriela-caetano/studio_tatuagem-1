@@ -68,18 +68,10 @@ app.use('/uploads', express.static('uploads'));
 // Função para inicializar o servidor
 async function startServer() {
   try {
-    // 1. Primeiro, testar conexão com o banco SQLite
+    // 1. Primeiro, testar conexão com o banco
     console.log('🔌 Conectando ao banco de dados...');
-    await new Promise((resolve, reject) => {
-      db.get('SELECT 1 as test', (err, row) => {
-        if (err) {
-          console.error('❌ Erro ao conectar ao banco SQLite:', err.message);
-          return reject(err);
-        }
-        console.log('✅ Conectado ao banco de dados SQLite');
-        resolve(row);
-      });
-    });
+    await db.query('SELECT 1');
+    console.log('✅ Conectado ao banco de dados MySQL');
 
     // 2. Depois, importar e registrar as rotas
     console.log('📦 Carregando rotas...');

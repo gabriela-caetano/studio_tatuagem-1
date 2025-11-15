@@ -6,26 +6,43 @@ class ClienteController {
   static async create(req, res) {
     try {
       const clienteData = req.body;
+      
+      // Validar dados
       const errors = Cliente.validate(clienteData);
       if (errors.length > 0) {
-        return res.status(400).json({ message: 'Dados inválidos', errors });
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors 
+        });
       }
+
+      // Verificar se email já existe
       const emailExistente = await ClienteDAO.findByEmail(clienteData.email);
       if (emailExistente) {
-        return res.status(409).json({ message: 'Email já cadastrado' });
+        return res.status(409).json({ 
+          message: 'Email já cadastrado' 
+        });
       }
+
+      // Verificar se CPF já existe
       const cpfExistente = await ClienteDAO.findByCPF(clienteData.cpf);
       if (cpfExistente) {
-        return res.status(409).json({ message: 'CPF já cadastrado' });
+        return res.status(409).json({ 
+          message: 'CPF já cadastrado' 
+        });
       }
+
       const cliente = await ClienteDAO.create(clienteData);
+      
       res.status(201).json({
         message: 'Cliente criado com sucesso',
-        cliente: cliente && cliente.toJSON ? cliente.toJSON() : cliente
+        cliente: cliente.toJSON()
       });
     } catch (error) {
       console.error('Erro ao criar cliente:', error);
-      res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+      res.status(500).json({ 
+        message: 'Erro interno do servidor' 
+      });
     }
   }
 
@@ -57,15 +74,23 @@ class ClienteController {
   static async findAll(req, res) {
     try {
       const { page = 1, limit = 10, search = '' } = req.query;
-      const result = await ClienteDAO.findAll(parseInt(page), parseInt(limit), search);
+      
+      const result = await ClienteDAO.findAll(
+        parseInt(page), 
+        parseInt(limit), 
+        search
+      );
+      
       res.json({
         message: 'Clientes encontrados',
-        data: result.clientes ? result.clientes.map(cliente => cliente && cliente.toJSON ? cliente.toJSON() : cliente) : [],
+        data: result.clientes.map(cliente => cliente.toJSON()),
         pagination: result.pagination
       });
     } catch (error) {
       console.error('Erro ao listar clientes:', error);
-      res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+      res.status(500).json({ 
+        message: 'Erro interno do servidor' 
+      });
     }
   }
 
@@ -74,30 +99,51 @@ class ClienteController {
     try {
       const { id } = req.params;
       const clienteData = req.body;
+      
+      // Validar dados
       const errors = Cliente.validate(clienteData);
       if (errors.length > 0) {
-        return res.status(400).json({ message: 'Dados inválidos', errors });
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors 
+        });
       }
+
+      // Verificar se o cliente existe
       const clienteExistente = await ClienteDAO.findById(id);
       if (!clienteExistente) {
-        return res.status(404).json({ message: 'Cliente não encontrado' });
+        return res.status(404).json({ 
+          message: 'Cliente não encontrado' 
+        });
       }
+
+      // Verificar se email já existe (exceto para o próprio cliente)
       const emailExistente = await ClienteDAO.findByEmail(clienteData.email);
       if (emailExistente && emailExistente.id != id) {
-        return res.status(409).json({ message: 'Email já cadastrado para outro cliente' });
+        return res.status(409).json({ 
+          message: 'Email já cadastrado para outro cliente' 
+        });
       }
+
+      // Verificar se CPF já existe (exceto para o próprio cliente)
       const cpfExistente = await ClienteDAO.findByCPF(clienteData.cpf);
       if (cpfExistente && cpfExistente.id != id) {
-        return res.status(409).json({ message: 'CPF já cadastrado para outro cliente' });
+        return res.status(409).json({ 
+          message: 'CPF já cadastrado para outro cliente' 
+        });
       }
+
       const cliente = await ClienteDAO.update(id, clienteData);
+      
       res.json({
         message: 'Cliente atualizado com sucesso',
-        cliente: cliente && cliente.toJSON ? cliente.toJSON() : cliente
+        cliente: cliente.toJSON()
       });
     } catch (error) {
       console.error('Erro ao atualizar cliente:', error);
-      res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+      res.status(500).json({ 
+        message: 'Erro interno do servidor' 
+      });
     }
   }
 

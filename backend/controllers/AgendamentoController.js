@@ -410,23 +410,37 @@ class AgendamentoController {
       // Buscar conflitos se não estiver disponível
       let conflitos = [];
       if (!disponivel) {
-        // Buscar agendamentos conflitantes diretamente via DAO
-        const filtros = {
-          tatuador_id: parseInt(tatuadorId),
-          data_agendamento: data,
-          status: null // buscar todos exceto cancelado
-        };
-        const agendamentos = await AgendamentoDAO.findAll(filtros);
-        conflitos = agendamentos.filter(a =>
-          a.status !== 'cancelado' &&
-          (
-            (a.hora_inicio < horaFim && a.hora_fim > horaInicio) ||
-            (a.hora_inicio < horaFim && a.hora_fim > horaFim) ||
-            (a.hora_inicio >= horaInicio && a.hora_fim <= horaFim)
-          ) &&
-          (!agendamentoId || a.id != agendamentoId)
-        );
+        const db = require('../config/database');
+        const query = `
+          SELECT id, hora_inicio, hora_fim, cliente_nome, status
+          FROM view_agendamentos_completos
+          WHERE tatuador_id = ? 
+          AND data = ? 
+          AND status NOT IN ('cancelado')
+          AND (
+            (hora_inicio < ? AND hora_fim > ?) OR
+            (hora_inicio < ? AND hora_fim > ?) OR
+            (hora_inicio >= ? AND hora_fim <= ?)
+          )
+          ${agendamentoId ? 'AND id != ?' : ''}
+        `;
+
+        const params = [
+          tatuadorId, 
+          data,
+          horaFim, horaInicio,
+          horaFim, horaInicio,
+          horaInicio, horaFim
+        ];
+
+        if (agendamentoId) {
+          params.push(agendamentoId);
+        }
+
+        const [rows] = await db.execute(query, params);
+        conflitos = rows;
       }
+
       res.json({
         disponivel,
         conflitos

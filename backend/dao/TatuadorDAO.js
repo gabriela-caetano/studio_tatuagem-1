@@ -3,14 +3,17 @@ const Tatuador = require('../models/Tatuador');
 
 class TatuadorDAO {
   // Criar novo tatuador
-  static create(tatuadorData) {
-    return new Promise((resolve, reject) => {
+  static async create(tatuadorData) {
+    try {
+      console.log('🗄️  TatuadorDAO.create - Dados recebidos:', tatuadorData);
+      
       const query = `
         INSERT INTO tatuadores (
           nome, email, telefone, especialidades, biografia, 
           portfolio_url, instagram, valor_hora, disponibilidade
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
+      
       const values = [
         tatuadorData.nome || null,
         tatuadorData.email || null,
@@ -22,70 +25,96 @@ class TatuadorDAO {
         tatuadorData.valor_hora || null,
         JSON.stringify(tatuadorData.disponibilidade || {})
       ];
-      db.run(query, values, function (err) {
-        if (err) return reject(err);
-        TatuadorDAO.findById(this.lastID)
-          .then(tatuador => resolve(tatuador))
-          .catch(reject);
-      });
-    });
+
+      console.log('📋 Query:', query);
+      console.log('📋 Values:', values);
+
+      const [result] = await db.query(query, values);
+      console.log('✅ Insert result:', result);
+      console.log('🆔 Insert ID:', result.insertId);
+      
+      const novoTatuador = await this.findById(result.insertId);
+      console.log('✅ Tatuador recuperado:', novoTatuador);
+      
+      return novoTatuador;
+    } catch (error) {
+      console.error('❌ Erro no TatuadorDAO.create:', error);
+      console.error('Stack:', error.stack);
+      throw error;
+    }
   }
 
   // Buscar tatuador por ID
-  static findById(id) {
-    return new Promise((resolve, reject) => {
+  static async findById(id) {
+    try {
       const query = 'SELECT * FROM tatuadores WHERE id = ? AND ativo = 1';
-      db.get(query, [id], (err, row) => {
-        if (err) return reject(err);
-        if (!row) return resolve(null);
-        // Parse do JSON de disponibilidade
-        if (row.disponibilidade) {
-          try {
-            row.disponibilidade = JSON.parse(row.disponibilidade);
-          } catch (e) {
-            row.disponibilidade = {};
-          }
+      const [rows] = await db.query(query, [id]);
+      
+      if (rows.length === 0) {
+        return null;
+      }
+      
+      const tatuador = rows[0];
+      // Parse do JSON de disponibilidade
+      if (tatuador.disponibilidade) {
+        try {
+          tatuador.disponibilidade = JSON.parse(tatuador.disponibilidade);
+        } catch (e) {
+          tatuador.disponibilidade = {};
         }
-        resolve(new Tatuador(row));
-      });
-    });
+      }
+      
+      return new Tatuador(tatuador);
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Buscar tatuador por email
-  static findByEmail(email) {
-    return new Promise((resolve, reject) => {
+  static async findByEmail(email) {
+    try {
       const query = 'SELECT * FROM tatuadores WHERE email = ? AND ativo = 1';
-      db.get(query, [email], (err, row) => {
-        if (err) return reject(err);
-        if (!row) return resolve(null);
-        if (row.disponibilidade) {
-          try {
-            row.disponibilidade = JSON.parse(row.disponibilidade);
-          } catch (e) {
-            row.disponibilidade = {};
-          }
+      const [rows] = await db.query(query, [email]);
+      
+      if (rows.length === 0) {
+        return null;
+      }
+      
+      const tatuador = rows[0];
+      if (tatuador.disponibilidade) {
+        try {
+          tatuador.disponibilidade = JSON.parse(tatuador.disponibilidade);
+        } catch (e) {
+          tatuador.disponibilidade = {};
         }
-        resolve(new Tatuador(row));
-      });
-    });
+      }
+      
+      return new Tatuador(tatuador);
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Listar todos os tatuadores
-  static findAll(page = 1, limit = 10, search = '', especialidade = '', apenasAtivos = true) {
-    return new Promise((resolve, reject) => {
+  static async findAll(page = 1, limit = 10, search = '', especialidade = '', apenasAtivos = true) {
+    try {
+      // Converter para inteiros para evitar erro no MySQL
       const pageNum = parseInt(page) || 1;
       const limitNum = parseInt(limit) || 10;
       const offset = (pageNum - 1) * limitNum;
+      
       let query = 'SELECT * FROM tatuadores WHERE 1=1';
       let countQuery = 'SELECT COUNT(*) as total FROM tatuadores WHERE 1=1';
       const queryParams = [];
       const countParams = [];
+      
       if (apenasAtivos) {
         query += ' AND ativo = ?';
         countQuery += ' AND ativo = ?';
         queryParams.push(1);
         countParams.push(1);
       }
+      
       if (search) {
         query += ' AND (nome LIKE ? OR email LIKE ? OR telefone LIKE ?)';
         countQuery += ' AND (nome LIKE ? OR email LIKE ? OR telefone LIKE ?)';
@@ -93,6 +122,7 @@ class TatuadorDAO {
         queryParams.push(searchParam, searchParam, searchParam);
         countParams.push(searchParam, searchParam, searchParam);
       }
+      
       if (especialidade) {
         query += ' AND especialidades LIKE ?';
         countQuery += ' AND especialidades LIKE ?';
@@ -100,62 +130,65 @@ class TatuadorDAO {
         queryParams.push(espParam);
         countParams.push(espParam);
       }
+      
       query += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
       queryParams.push(limitNum, offset);
-      db.all(query, queryParams, (err, rows) => {
-        if (err) return reject(err);
-        db.get(countQuery, countParams, (err2, countResult) => {
-          if (err2) return reject(err2);
-          const tatuadores = rows.map(row => {
-            if (row.disponibilidade) {
-              try {
-                row.disponibilidade = JSON.parse(row.disponibilidade);
-              } catch (e) {
-                row.disponibilidade = {};
-              }
-            }
-            return new Tatuador(row);
-          });
-          resolve({
-            data: tatuadores,
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              total: countResult ? countResult.total : 0,
-              totalPages: countResult ? Math.ceil(countResult.total / limitNum) : 1
-            }
-          });
-        });
+
+      const [rows] = await db.query(query, queryParams);
+      const [countResult] = await db.query(countQuery, countParams);
+      
+      const tatuadores = rows.map(row => {
+        if (row.disponibilidade) {
+          try {
+            row.disponibilidade = JSON.parse(row.disponibilidade);
+          } catch (e) {
+            row.disponibilidade = {};
+          }
+        }
+        return new Tatuador(row);
       });
-    });
+
+      return {
+        data: tatuadores,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: countResult[0].total,
+          totalPages: Math.ceil(countResult[0].total / limitNum)
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Listar tatuadores ativos (simplificado)
-  static findAllActive() {
-    return new Promise((resolve, reject) => {
+  static async findAllActive() {
+    try {
       const query = 'SELECT id, nome, email, especialidades, valor_hora FROM tatuadores WHERE ativo = 1 ORDER BY nome ASC';
-      db.all(query, [], (err, rows) => {
-        if (err) return reject(err);
-        const result = rows.map(row => {
-          if (row.disponibilidade) {
-            try {
-              row.disponibilidade = JSON.parse(row.disponibilidade);
-            } catch (e) {
-              row.disponibilidade = {};
-            }
+      const [rows] = await db.query(query);
+      
+      return rows.map(row => {
+        if (row.disponibilidade) {
+          try {
+            row.disponibilidade = JSON.parse(row.disponibilidade);
+          } catch (e) {
+            row.disponibilidade = {};
           }
-          return new Tatuador(row);
-        });
-        resolve(result);
+        }
+        return new Tatuador(row);
       });
-    });
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Atualizar tatuador
-  static update(id, tatuadorData) {
-    return new Promise((resolve, reject) => {
+  static async update(id, tatuadorData) {
+    try {
       const updates = [];
       const values = [];
+
       if (tatuadorData.nome !== undefined) {
         updates.push('nome = ?');
         values.push(tatuadorData.nome);
@@ -192,58 +225,62 @@ class TatuadorDAO {
         updates.push('disponibilidade = ?');
         values.push(JSON.stringify(tatuadorData.disponibilidade));
       }
+
       if (updates.length === 0) {
-        return reject(new Error('Nenhum campo para atualizar'));
+        throw new Error('Nenhum campo para atualizar');
       }
+
       values.push(id);
       const query = `UPDATE tatuadores SET ${updates.join(', ')} WHERE id = ?`;
-      db.run(query, values, function (err) {
-        if (err) return reject(err);
-        TatuadorDAO.findById(id)
-          .then(tatuador => resolve(tatuador))
-          .catch(reject);
-      });
-    });
+      
+      await db.query(query, values);
+      return await this.findById(id);
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Excluir tatuador (soft delete)
-  static delete(id) {
-    return new Promise((resolve, reject) => {
+  static async delete(id) {
+    try {
+      // Verificar se existem agendamentos futuros
       const checkQuery = `
         SELECT COUNT(*) as count 
         FROM agendamentos 
         WHERE tatuador_id = ? 
-        AND data_agendamento >= date('now') 
+        AND data_agendamento >= CURDATE() 
         AND status IN ('agendado', 'confirmado')
       `;
-      db.get(checkQuery, [id], (err, checkResult) => {
-        if (err) return reject(err);
-        if (checkResult && checkResult.count > 0) {
-          return reject(new Error('Não é possível excluir tatuador com agendamentos futuros'));
-        }
-        const query = 'UPDATE tatuadores SET ativo = 0 WHERE id = ?';
-        db.run(query, [id], function (err2) {
-          if (err2) return reject(err2);
-          resolve(this.changes > 0);
-        });
-      });
-    });
+      const [checkResult] = await db.query(checkQuery, [id]);
+      
+      if (checkResult[0].count > 0) {
+        throw new Error('Não é possível excluir tatuador com agendamentos futuros');
+      }
+
+      const query = 'UPDATE tatuadores SET ativo = 0 WHERE id = ?';
+      const [result] = await db.query(query, [id]);
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Reativar tatuador
-  static reactivate(id) {
-    return new Promise((resolve, reject) => {
+  static async reactivate(id) {
+    try {
       const query = 'UPDATE tatuadores SET ativo = 1 WHERE id = ?';
-      db.run(query, [id], function (err) {
-        if (err) return reject(err);
-        resolve(this.changes > 0);
-      });
-    });
+      const [result] = await db.query(query, [id]);
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Buscar agendamentos do tatuador
-  static findAgendamentos(tatuadorId, dataInicio = null, dataFim = null) {
-    return new Promise((resolve, reject) => {
+  static async findAgendamentos(tatuadorId, dataInicio = null, dataFim = null) {
+    try {
       let query = `
         SELECT a.*, c.nome as cliente_nome, s.nome as servico_nome
         FROM agendamentos a
@@ -252,25 +289,29 @@ class TatuadorDAO {
         WHERE a.tatuador_id = ?
       `;
       const params = [tatuadorId];
+
       if (dataInicio) {
         query += ' AND a.data_agendamento >= ?';
         params.push(dataInicio);
       }
+
       if (dataFim) {
         query += ' AND a.data_agendamento <= ?';
         params.push(dataFim);
       }
+
       query += ' ORDER BY a.data_agendamento DESC, a.hora_inicio DESC';
-      db.all(query, params, (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows);
-      });
-    });
+
+      const [rows] = await db.query(query, params);
+      return rows;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Verificar disponibilidade do tatuador em uma data/hora específica
-  static verificarDisponibilidade(tatuadorId, data, horaInicio, horaFim, agendamentoIdExcluir = null) {
-    return new Promise((resolve, reject) => {
+  static async verificarDisponibilidade(tatuadorId, data, horaInicio, horaFim, agendamentoIdExcluir = null) {
+    try {
       let query = `
         SELECT COUNT(*) as count
         FROM agendamentos
@@ -283,6 +324,7 @@ class TatuadorDAO {
           (hora_inicio >= ? AND hora_fim <= ?)
         )
       `;
+      
       const params = [
         tatuadorId,
         data,
@@ -290,20 +332,22 @@ class TatuadorDAO {
         horaFim, horaFim,
         horaInicio, horaFim
       ];
+
       if (agendamentoIdExcluir) {
         query += ' AND id != ?';
         params.push(agendamentoIdExcluir);
       }
-      db.get(query, params, (err, result) => {
-        if (err) return reject(err);
-        resolve(result && result.count === 0);
-      });
-    });
+
+      const [result] = await db.query(query, params);
+      return result[0].count === 0;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Buscar estatísticas do tatuador
-  static getEstatisticas(tatuadorId, mes = null, ano = null) {
-    return new Promise((resolve, reject) => {
+  static async getEstatisticas(tatuadorId, mes = null, ano = null) {
+    try {
       let query = `
         SELECT 
           COUNT(*) as total_agendamentos,
@@ -314,19 +358,22 @@ class TatuadorDAO {
         WHERE tatuador_id = ?
       `;
       const params = [tatuadorId];
+
       if (ano) {
-        query += " AND strftime('%Y', data_agendamento) = ?";
-        params.push(String(ano));
+        query += ' AND YEAR(data_agendamento) = ?';
+        params.push(ano);
       }
+
       if (mes) {
-        query += " AND strftime('%m', data_agendamento) = ?";
-        params.push(String(mes).padStart(2, '0'));
+        query += ' AND MONTH(data_agendamento) = ?';
+        params.push(mes);
       }
-      db.get(query, params, (err, result) => {
-        if (err) return reject(err);
-        resolve(result);
-      });
-    });
+
+      const [result] = await db.query(query, params);
+      return result[0];
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

@@ -58,12 +58,12 @@ router.get('/verify', auth, AuthController.verifyToken);
  * @access  Private
  */
 router.post('/alterar-senha', auth, AuthController.alterarSenha);
+
 /**
  * @route   POST /api/auth/recuperar-senha
  * @desc    Solicitar recuperação de senha
  * @access  Public
-// Removing duplicate POST route for alterar-senha
-router.post('/alterar-senha', auth, AuthController.alterarSenha);
+ */
 router.post('/recuperar-senha', AuthController.recuperarSenha);
 
 /**
