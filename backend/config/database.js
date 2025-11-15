@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
@@ -13,7 +12,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// Promisify para SELECT (retorna array)
+// Promisify para usar async/await
 const query = (sql, params = []) => {
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
@@ -26,21 +25,7 @@ const query = (sql, params = []) => {
   });
 };
 
-// Promisify para INSERT/UPDATE/DELETE (retorna objeto com lastID/changes)
-const run = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve({ lastID: this.lastID, changes: this.changes });
-      }
-    });
-  });
-};
-
 module.exports = {
   db,
-  query,
-  run
+  query
 };

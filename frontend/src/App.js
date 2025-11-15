@@ -15,6 +15,7 @@ import TatuadorForm from './pages/TatuadorForm';
 import Servicos from './pages/Servicos';
 import Relatorios from './pages/Relatorios';
 import Login from './pages/Login';
+import LoginTatuador from './pages/LoginTatuador';
 import Perfil from './pages/Perfil';
 import EsqueceuSenha from './pages/EsqueceuSenha';
 import RedefinirSenha from './pages/RedefinirSenha';
@@ -54,6 +55,7 @@ function AppContent() {
             <div className={isLoginPage ? '' : 'main-content'}>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/login-tatuador" element={<LoginTatuador />} />
                 <Route path="/esqueceu-senha" element={<EsqueceuSenha />} />
                 <Route path="/redefinir-senha/:token" element={<RedefinirSenha />} />
                 <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
@@ -76,6 +78,8 @@ function AppContent() {
                 
                 <Route path="/servicos" element={<PrivateRoute><Servicos /></PrivateRoute>} />
                 <Route path="/relatorios" element={<PrivateRoute><Relatorios /></PrivateRoute>} />
+                {/* Exemplo de dashboard para tatuador, pode ser ajustado depois */}
+                <Route path="/dashboard-tatuador" element={<div style={{padding:40}}><h2>Bem-vindo, Tatuador!</h2></div>} />
               </Routes>
             </div>
           </Col>

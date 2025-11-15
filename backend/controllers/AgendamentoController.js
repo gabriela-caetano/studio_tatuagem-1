@@ -100,16 +100,16 @@ class AgendamentoController {
         filters.data_fim = req.query.data_fim;
       }
       
-      let agendamentos = await AgendamentoDAO.findAll(filters);
-      if (!Array.isArray(agendamentos)) agendamentos = [];
+      const agendamentos = await AgendamentoDAO.findAll(filters);
       console.log('📋 Agendamentos encontrados:', agendamentos.length);
+      
       res.json({
         message: 'Agendamentos encontrados',
-        data: agendamentos,
+        agendamentos: Array.isArray(agendamentos) ? agendamentos : [],
         pagination: {
-          total: agendamentos.length,
+          total: Array.isArray(agendamentos) ? agendamentos.length : 0,
           page: 1,
-          limit: agendamentos.length,
+          limit: Array.isArray(agendamentos) ? agendamentos.length : 0,
           totalPages: 1
         }
       });
@@ -353,7 +353,7 @@ class AgendamentoController {
       
       res.json({
         message: 'Agendamentos do dia encontrados',
-        agendamentos
+        agendamentos: Array.isArray(agendamentos) ? agendamentos : []
       });
     } catch (error) {
       console.error('Erro ao buscar agendamentos do dia:', error);
@@ -437,7 +437,7 @@ class AgendamentoController {
           params.push(agendamentoId);
         }
 
-        const [rows] = await db.execute(query, params);
+        const rows = await db.query(query, params);
         conflitos = rows;
       }
 

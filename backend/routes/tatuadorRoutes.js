@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const TatuadorController = require('../controllers/TatuadorController');
+/**
+ * @route   POST /api/tatuadores/login
+ * @desc    Login de tatuador
+ * @access  Public
+ */
+router.post('/login', TatuadorController.login);
 
 /**
  * @route   GET /api/tatuadores

@@ -203,6 +203,12 @@ export const tatuadorService = {
     });
     return response.data;
   },
+
+  // Login tatuador
+  loginTatuador: async (data) => {
+    const response = await api.post('/tatuadores/login', data);
+    return response.data;
+  },
 };
 
 // Serviço de Autenticação

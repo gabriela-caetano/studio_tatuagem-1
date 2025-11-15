@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const { db, query } = require('../config/database');
 const Servico = require('../models/Servico');
 
 class ServicoDAO {
@@ -10,16 +10,19 @@ class ServicoDAO {
           nome, descricao, preco_base, duracao_estimada
         ) VALUES (?, ?, ?, ?)
       `;
-      
       const values = [
         servicoData.nome || null,
         servicoData.descricao || null,
         servicoData.preco_base || null,
         servicoData.duracao_estimada || null
       ];
-
-      const result = await db.run(query, values);
-      return await this.findById(result.lastID);
+      const lastID = await new Promise((resolve, reject) => {
+        db.run(query, values, function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        });
+      });
+      return await ServicoDAO.findById(lastID);
     } catch (error) {
       console.error('ServicoDAO.create:', error);
       throw error;
@@ -29,8 +32,8 @@ class ServicoDAO {
   // Buscar serviço por ID
   static async findById(id) {
     try {
-      const query = 'SELECT * FROM servicos WHERE id = ? AND ativo = 1';
-      const rows = await db.query(query, [id]);
+      const sql = 'SELECT * FROM servicos WHERE id = ? AND ativo = 1';
+      const rows = await query(sql, [id]);
       if (!rows || rows.length === 0) {
         return null;
       }
@@ -40,43 +43,34 @@ class ServicoDAO {
       throw error;
     }
   }
-
-  // Listar todos os serviços
   static async findAll(page = 1, limit = 10, search = '') {
     try {
-      // Converter para inteiros para evitar erro no MySQL
       const pageNum = parseInt(page) || 1;
       const limitNum = parseInt(limit) || 10;
       const offset = (pageNum - 1) * limitNum;
-      
-      let query = 'SELECT * FROM servicos WHERE ativo = 1';
-      let countQuery = 'SELECT COUNT(*) as total FROM servicos WHERE ativo = 1';
+      let sql = 'SELECT * FROM servicos WHERE ativo = 1';
+      let countSql = 'SELECT COUNT(*) as total FROM servicos WHERE ativo = 1';
       const queryParams = [];
       const countParams = [];
-      
       if (search) {
-        query += ' AND (nome LIKE ? OR descricao LIKE ?)';
-        countQuery += ' AND (nome LIKE ? OR descricao LIKE ?)';
+        sql += ' AND (nome LIKE ? OR descricao LIKE ?)';
+        countSql += ' AND (nome LIKE ? OR descricao LIKE ?)';
         const searchParam = `%${search}%`;
         queryParams.push(searchParam, searchParam);
         countParams.push(searchParam, searchParam);
       }
-      
-      query += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
+      sql += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
       queryParams.push(limitNum, offset);
-
-      const rows = await db.query(query, queryParams);
-      const countResult = await db.query(countQuery, countParams);
-      const arrServicos = Array.isArray(rows) ? rows : [];
-      const arrCount = Array.isArray(countResult) ? countResult : [{ total: 0 }];
-      const servicos = arrServicos.map(row => new Servico(row));
+      let rows = await query(sql, queryParams);
+      let countArr = await query(countSql, countParams);
+      const servicos = Array.isArray(rows) ? rows.map(row => new Servico(row)) : [];
       return {
         data: servicos,
         pagination: {
           page: pageNum,
           limit: limitNum,
-          total: arrCount[0].total,
-          totalPages: Math.ceil(arrCount[0].total / limitNum)
+          total: countArr[0] && countArr[0].total ? countArr[0].total : 0,
+          totalPages: countArr[0] && countArr[0].total ? Math.ceil(countArr[0].total / limitNum) : 1
         }
       };
     } catch (error) {
@@ -88,13 +82,12 @@ class ServicoDAO {
   // Listar serviços ativos (simplificado)
   static async findAllActive() {
     try {
-      const query = 'SELECT id, nome, descricao, preco_base, duracao_estimada FROM servicos WHERE ativo = 1 ORDER BY nome ASC';
-      const rows = await db.query(query);
-      const arrServicos = Array.isArray(rows) ? rows : [];
-      return arrServicos.map(row => new Servico(row));
+      const sql = 'SELECT id, nome, descricao, preco_base, duracao_estimada FROM servicos WHERE ativo = 1 ORDER BY nome ASC';
+      const rows = await query(sql);
+      return Array.isArray(rows) ? rows.map(row => new Servico(row)) : [];
     } catch (error) {
       console.error('ServicoDAO.findAllActive:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -109,7 +102,6 @@ class ServicoDAO {
           duracao_estimada = ?
         WHERE id = ? AND ativo = 1
       `;
-      
       const values = [
         servicoData.nome || null,
         servicoData.descricao || null,
@@ -117,12 +109,16 @@ class ServicoDAO {
         servicoData.duracao_estimada || null,
         id
       ];
-
-      const result = await db.query(query, values);
-      if (!result || result.affectedRows === 0) {
+      const changes = await new Promise((resolve, reject) => {
+        db.run(query, values, function (err) {
+          if (err) reject(err);
+          else resolve(this.changes);
+        });
+      });
+      if (changes === 0) {
         return null;
       }
-      return await this.findById(id);
+      return await ServicoDAO.findById(id);
     } catch (error) {
       console.error('ServicoDAO.update:', error);
       throw error;
@@ -133,8 +129,13 @@ class ServicoDAO {
   static async delete(id) {
     try {
       const query = 'UPDATE servicos SET ativo = 0 WHERE id = ?';
-      const result = await db.query(query, [id]);
-      return result && result.affectedRows > 0;
+      const changes = await new Promise((resolve, reject) => {
+        db.run(query, [id], function (err) {
+          if (err) reject(err);
+          else resolve(this.changes);
+        });
+      });
+      return changes > 0;
     } catch (error) {
       console.error('ServicoDAO.delete:', error);
       throw error;
@@ -145,8 +146,9 @@ class ServicoDAO {
   static async reactivate(id) {
     try {
       const query = 'UPDATE servicos SET ativo = 1 WHERE id = ?';
-      const result = await db.query(query, [id]);
-      return result && result.affectedRows > 0;
+      const [result] = await db.query(query, [id]);
+      
+      return result.affectedRows > 0;
     } catch (error) {
       console.error('ServicoDAO.reactivate:', error);
       throw error;
@@ -164,7 +166,7 @@ class ServicoDAO {
         ORDER BY preco_base ASC
       `;
       
-      const rows = await db.query(query, [minPrice, maxPrice]);
+      const [rows] = await db.query(query, [minPrice, maxPrice]);
       return rows.map(row => new Servico(row));
     } catch (error) {
       console.error('ServicoDAO.findByPriceRange:', error);

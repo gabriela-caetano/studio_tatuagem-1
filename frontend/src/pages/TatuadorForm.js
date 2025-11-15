@@ -42,7 +42,11 @@ function TatuadorForm() {
     try {
       setLoading(true);
       const response = await tatuadorService.getTatuadorById(id);
-      
+      if (!response || !response.tatuador) {
+        setError('Tatuador não encontrado');
+        toast.error('Tatuador não encontrado');
+        return;
+      }
       // Parse disponibilidade se for string
       const disponibilidade = typeof response.tatuador.disponibilidade === 'string'
         ? JSON.parse(response.tatuador.disponibilidade)

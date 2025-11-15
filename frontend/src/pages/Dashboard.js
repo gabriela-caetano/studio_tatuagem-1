@@ -14,6 +14,15 @@ function Dashboard() {
 
   const { data: agendamentosHoje } = useQuery(['agendamentos-hoje', hoje], () => agendamentoService.getAgendamentosByDate(hoje));
   const { data: dashboardData, isLoading: loadingDashboard } = useQuery('dashboard-metrics', () => relatorioService.getDashboard());
+
+  // Ajuste para os campos corretos do backend
+  const totalClientes = dashboardData?.total_clientes ?? dashboardData?.totalClientes ?? 0;
+  const totalTatuadores = dashboardData?.total_tatuadores ?? dashboardData?.totalTatuadores ?? 0;
+  const agendamentosHojeCount = dashboardData?.agendamentos_hoje ?? dashboardData?.agendamentosHoje ?? agendamentosHoje?.agendamentos?.length ?? 0;
+  const receitaMes = dashboardData?.estatisticas_mes_atual?.faturamento ?? dashboardData?.receitaMes ?? 0;
+  const taxaConclusao = dashboardData?.estatisticas_mes_atual?.concluidos && dashboardData?.estatisticas_mes_atual?.total_agendamentos
+    ? Math.round((dashboardData.estatisticas_mes_atual.concluidos / dashboardData.estatisticas_mes_atual.total_agendamentos) * 100)
+    : 0;
   const { data: financeiroData } = useQuery('financeiro-chart', () => relatorioService.getFinanceiro(inicioAno, hoje));
   const { data: agendamentosData } = useQuery('agendamentos-chart', () => relatorioService.getAgendamentos({ dataInicio: inicioMes, dataFim: hoje }));
 
@@ -35,7 +44,7 @@ function Dashboard() {
             <Card.Body>
               <Calendar size={32} className="text-primary mb-2" />
               <h5 className="card-title">Agendamentos Hoje</h5>
-              <h2 className="text-primary">{agendamentosHoje?.agendamentos?.length || 0}</h2>
+              <h2 className="text-primary">{agendamentosHojeCount}</h2>
             </Card.Body>
           </Card>
         </Col>
@@ -44,7 +53,7 @@ function Dashboard() {
             <Card.Body>
               <Users size={32} className="text-success mb-2" />
               <h5 className="card-title">Clientes Ativos</h5>
-              <h2 className="text-success">{loadingDashboard ? <Spinner animation="border" size="sm" /> : (dashboardData?.totalClientes || 0)}</h2>
+              <h2 className="text-success">{loadingDashboard ? <Spinner animation="border" size="sm" /> : totalClientes}</h2>
             </Card.Body>
           </Card>
         </Col>
@@ -53,7 +62,7 @@ function Dashboard() {
             <Card.Body>
               <DollarSign size={32} className="text-warning mb-2" />
               <h5 className="card-title">Receita do Mês</h5>
-              <h2 className="text-warning">{loadingDashboard ? <Spinner animation="border" size="sm" /> : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData?.receitaMes || 0)}</h2>
+              <h2 className="text-warning">{loadingDashboard ? <Spinner animation="border" size="sm" /> : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(receitaMes)}</h2>
             </Card.Body>
           </Card>
         </Col>
@@ -62,7 +71,7 @@ function Dashboard() {
             <Card.Body>
               <TrendingUp size={32} className="text-info mb-2" />
               <h5 className="card-title">Taxa de Conclusão</h5>
-              <h2 className="text-info">{loadingDashboard ? <Spinner animation="border" size="sm" /> : `${dashboardData?.taxaConclusao || 0}%`}</h2>
+              <h2 className="text-info">{loadingDashboard ? <Spinner animation="border" size="sm" /> : `${taxaConclusao}%`}</h2>
             </Card.Body>
           </Card>
         </Col>

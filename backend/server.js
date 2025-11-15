@@ -65,71 +65,13 @@ app.use((req, res, next) => {
 // Servir arquivos estáticos
 app.use('/uploads', express.static('uploads'));
 
-// Rota /login (POST) para autenticação direta
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-app.post('/login', (req, res) => {
-  const { email, senha } = req.body;
-  console.log('POST /login recebido:', { email });
-  if (!email || !senha) {
-    console.log('Dados ausentes:', { email, senha });
-    return res.status(400).json({ message: 'Email e senha são obrigatórios' });
-  }
-  db.db.get('SELECT * FROM usuarios WHERE email = ? AND ativo = 1', [email], (err, usuario) => {
-    if (err) {
-      console.error('Erro ao buscar usuário:', err);
-      return res.status(500).json({ message: 'Erro interno do servidor', error: err.message });
-    }
-    console.log('Resultado da busca:', usuario);
-    if (!usuario) {
-      return res.status(401).json({ message: 'Credenciais inválidas' });
-    }
-    bcrypt.compare(senha, usuario.senha, (errCompare, senhaValida) => {
-      if (errCompare) {
-        console.error('Erro ao validar senha:', errCompare);
-        return res.status(500).json({ message: 'Erro ao validar senha', error: errCompare.message });
-      }
-      console.log('Senha válida?', senhaValida);
-      if (!senhaValida) {
-        return res.status(401).json({ message: 'Credenciais inválidas' });
-      }
-      const token = jwt.sign(
-        { id: usuario.id, tipo: usuario.tipo },
-        process.env.JWT_SECRET || 'studio_secret',
-        { expiresIn: '8h' }
-      );
-      db.db.run('UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = ?', [usuario.id], (err2) => {
-        if (err2) console.error('Erro ao atualizar último login:', err2);
-        const usuarioSemSenha = { ...usuario };
-        delete usuarioSemSenha.senha;
-        console.log('Login realizado com sucesso:', usuarioSemSenha);
-        return res.status(200).json({
-          message: 'Login realizado com sucesso',
-          token,
-          usuario: usuarioSemSenha
-        });
-      });
-    });
-  });
-});
-
-// Rota /login (GET) para evitar erro 404
-app.get('/login', (req, res) => {
-  res.status(404).json({ message: 'Endpoint /login não implementado. Use POST /login para autenticação.' });
-});
-
-// Rota /favicon.ico para evitar erro 404
-app.get('/favicon.ico', (req, res) => {
-  res.status(204).end(); // Sem conteúdo
-});
-
 // Função para inicializar o servidor
 async function startServer() {
   try {
-    // 1. Primeiro, testar conexão com o banco SQLite
-    console.log('🔌 Conectando ao banco SQLite...');
+    // 1. Primeiro, testar conexão com o banco
+    console.log('🔌 Conectando ao banco de dados...');
     await db.query('SELECT 1');
-    console.log('✅ Conectado ao banco de dados SQLite');
+    console.log('✅ Conectado ao banco de dados MySQL');
 
     // 2. Depois, importar e registrar as rotas
     console.log('📦 Carregando rotas...');
@@ -158,7 +100,6 @@ async function startServer() {
         database: 'connected'
       });
     });
-
 
     // 4. Middleware de tratamento de erros
     app.use((err, req, res, next) => {

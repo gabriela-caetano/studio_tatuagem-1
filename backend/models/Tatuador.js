@@ -10,6 +10,7 @@ class Tatuador {
     this.instagram = data.instagram;
     this.valor_hora = data.valor_hora;
     this.disponibilidade = data.disponibilidade;
+    this.senha = data.senha;
     this.data_cadastro = data.data_cadastro;
     this.ativo = data.ativo !== undefined ? data.ativo : true;
   }
@@ -57,6 +58,7 @@ class Tatuador {
       disponibilidade: this.disponibilidade,
       data_cadastro: this.data_cadastro,
       ativo: this.ativo
+      // Não retorna senha
     };
   }
 }

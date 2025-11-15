@@ -33,11 +33,7 @@ class ClienteController {
       }
 
       const cliente = await ClienteDAO.create(clienteData);
-      if (!cliente) {
-        return res.status(500).json({
-          message: 'Erro ao criar cliente: registro não encontrado após inserção.'
-        });
-      }
+      
       res.status(201).json({
         message: 'Cliente criado com sucesso',
         cliente: cliente.toJSON()
@@ -198,7 +194,7 @@ class ClienteController {
       
       res.json({
         message: 'Agendamentos encontrados',
-        agendamentos
+        agendamentos: Array.isArray(agendamentos) ? agendamentos : []
       });
     } catch (error) {
       console.error('Erro ao buscar agendamentos do cliente:', error);

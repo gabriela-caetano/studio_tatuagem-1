@@ -10,18 +10,35 @@ class ServicoController {
       if (ativo === '1' || ativo === 1) {
         const servicos = await ServicoDAO.findAllActive();
         return res.json({
-          data: servicos,
+          data: Array.isArray(servicos) ? servicos : [],
           pagination: {
             page: 1,
-            limit: servicos.length,
-            total: servicos.length,
+            limit: Array.isArray(servicos) ? servicos.length : 0,
+            total: Array.isArray(servicos) ? servicos.length : 0,
             totalPages: 1
           }
         });
       }
-      
-      const result = await ServicoDAO.findAll(page, limit, search);
-      res.json(result);
+      let result;
+      try {
+        result = await ServicoDAO.findAll(page, limit, search);
+      } catch (error) {
+        console.error('Erro ao listar serviços:', error);
+        return res.status(500).json({
+          error: 'Erro ao listar serviços',
+          details: error.message,
+          data: []
+        });
+      }
+      res.json({
+        data: Array.isArray(result.data) ? result.data : [],
+        pagination: result.pagination || {
+          page: 1,
+          limit: 0,
+          total: 0,
+          totalPages: 1
+        }
+      });
     } catch (error) {
       console.error('Erro ao listar serviços:', error);
       res.status(500).json({ 

@@ -42,19 +42,18 @@ function Calendario() {
     () => agendamentoService.getAgendamentos(periodo)
   );
 
-  // Garante que agendamentos.data é sempre array
-  const agendamentosArray = Array.isArray(agendamentos?.data) ? agendamentos.data : [];
-  const eventos = agendamentosArray.map(ag => {
-    const dataHoraInicio = `${ag.data_agendamento}T${ag.hora_inicio}`;
-    const dataHoraFim = `${ag.data_agendamento}T${ag.hora_fim}`;
+  console.log('Agendamentos recebidos no calendário:', agendamentos);
+  const eventos = agendamentos?.agendamentos?.map(ag => {
+    const start = moment(`${ag.data_agendamento} ${ag.hora_inicio}`, 'YYYY-MM-DD HH:mm').toDate();
+    const end = moment(`${ag.data_agendamento} ${ag.hora_fim}`, 'YYYY-MM-DD HH:mm').toDate();
     return {
       id: ag.id,
       title: `${ag.cliente_nome} - ${ag.tatuador_nome}`,
-      start: new Date(dataHoraInicio),
-      end: new Date(dataHoraFim),
+      start,
+      end,
       resource: ag
     };
-  });
+  }) || [];
 
   const eventStyleGetter = (event) => {
     const colors = {

@@ -1,18 +1,18 @@
 const db = require('../config/database');
-const { run } = require('../config/database');
 const Agendamento = require('../models/Agendamento');
 
 class AgendamentoDAO {
   // Criar novo agendamento
   static async create(agendamentoData) {
     try {
-      const sql = `
+      const query = `
         INSERT INTO agendamentos (
           cliente_id, tatuador_id, servico_id, data_agendamento, 
           hora_inicio, hora_fim, descricao_tatuagem, valor_estimado, 
           status, observacoes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
+      
       const values = [
         agendamentoData.cliente_id,
         agendamentoData.tatuador_id,
@@ -25,9 +25,17 @@ class AgendamentoDAO {
         agendamentoData.status || 'agendado',
         agendamentoData.observacoes
       ];
-      const { lastID } = await run(sql, values);
-      if (!lastID) throw new Error('Falha ao obter lastID do agendamento criado');
-      return await this.findById(lastID);
+
+      // SQLite: usar db.run para obter o último ID inserido
+      const sqlite3 = require('sqlite3').verbose();
+      const dbRaw = require('../config/database').db;
+      const lastId = await new Promise((resolve, reject) => {
+        dbRaw.run(query, values, function(err) {
+          if (err) return reject(err);
+          resolve(this.lastID);
+        });
+      });
+      return await this.findById(lastId);
     } catch (error) {
       throw error;
     }
@@ -48,12 +56,10 @@ class AgendamentoDAO {
         WHERE a.id = ?
       `;
       
-      const [rows] = await db.query(query, [id]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [id]);
+      if (!Array.isArray(rows) || rows.length === 0) {
         return null;
       }
-      
       return rows[0];
     } catch (error) {
       throw error;
@@ -138,8 +144,7 @@ class AgendamentoDAO {
       }
       
       const rows = await db.query(query, queryParams);
-      const arrRows = Array.isArray(rows) ? rows : [];
-      return arrRows.length === 0;
+      return Array.isArray(rows) && rows.length === 0;
     } catch (error) {
       throw error;
     }

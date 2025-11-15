@@ -10,8 +10,8 @@ class TatuadorDAO {
       const query = `
         INSERT INTO tatuadores (
           nome, email, telefone, especialidades, biografia, 
-          portfolio_url, instagram, valor_hora, disponibilidade
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          portfolio_url, instagram, valor_hora, disponibilidade, senha
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const values = [
@@ -23,16 +23,23 @@ class TatuadorDAO {
         tatuadorData.portfolio_url || null,
         tatuadorData.instagram || null,
         tatuadorData.valor_hora || null,
-        JSON.stringify(tatuadorData.disponibilidade || {})
+        JSON.stringify(tatuadorData.disponibilidade || {}),
+        tatuadorData.senha || null
       ];
 
       console.log('📋 Query:', query);
       console.log('📋 Values:', values);
 
-      const result = await db.query(query, values);
-      console.log('✅ Insert result:', result);
-      console.log('🆔 Insert ID:', result.insertId);
-      const novoTatuador = await this.findById(result.insertId);
+      // SQLite: usar db.run para obter o último ID inserido
+      const sqlite3 = require('sqlite3').verbose();
+      const dbRaw = require('../config/database').db;
+      const lastId = await new Promise((resolve, reject) => {
+        dbRaw.run(query, values, function(err) {
+          if (err) return reject(err);
+          resolve(this.lastID);
+        });
+      });
+      const novoTatuador = await this.findById(lastId);
       console.log('✅ Tatuador recuperado:', novoTatuador);
       return novoTatuador;
     } catch (error) {
@@ -47,19 +54,18 @@ class TatuadorDAO {
     try {
       const query = 'SELECT * FROM tatuadores WHERE id = ? AND ativo = 1';
       const rows = await db.query(query, [id]);
-      if (!rows || rows.length === 0) {
+      if (!Array.isArray(rows) || rows.length === 0 || !rows[0]) {
         return null;
       }
       const tatuador = rows[0];
       // Parse do JSON de disponibilidade
-      if (tatuador.disponibilidade) {
+      if (tatuador && tatuador.disponibilidade) {
         try {
           tatuador.disponibilidade = JSON.parse(tatuador.disponibilidade);
         } catch (e) {
           tatuador.disponibilidade = {};
         }
       }
-      
       return new Tatuador(tatuador);
     } catch (error) {
       throw error;
@@ -71,7 +77,7 @@ class TatuadorDAO {
     try {
       const query = 'SELECT * FROM tatuadores WHERE email = ? AND ativo = 1';
       const rows = await db.query(query, [email]);
-      if (!rows || rows.length === 0) {
+      if (!Array.isArray(rows) || rows.length === 0) {
         return null;
       }
       const tatuador = rows[0];
@@ -82,7 +88,6 @@ class TatuadorDAO {
           tatuador.disponibilidade = {};
         }
       }
-      
       return new Tatuador(tatuador);
     } catch (error) {
       throw error;
@@ -130,7 +135,7 @@ class TatuadorDAO {
 
       const rows = await db.query(query, queryParams);
       const countResult = await db.query(countQuery, countParams);
-      const tatuadores = rows.map(row => {
+      const tatuadores = Array.isArray(rows) ? rows.map(row => {
         if (row.disponibilidade) {
           try {
             row.disponibilidade = JSON.parse(row.disponibilidade);
@@ -139,14 +144,15 @@ class TatuadorDAO {
           }
         }
         return new Tatuador(row);
-      });
+      }) : [];
+
       return {
         data: tatuadores,
         pagination: {
           page: pageNum,
           limit: limitNum,
-          total: countResult[0]?.total || 0,
-          totalPages: Math.ceil((countResult[0]?.total || 0) / limitNum)
+          total: countResult[0].total,
+          totalPages: Math.ceil(countResult[0].total / limitNum)
         }
       };
     } catch (error) {
@@ -158,9 +164,8 @@ class TatuadorDAO {
   static async findAllActive() {
     try {
       const query = 'SELECT id, nome, email, especialidades, valor_hora FROM tatuadores WHERE ativo = 1 ORDER BY nome ASC';
-      const [rows] = await db.query(query);
-      
-      return rows.map(row => {
+      const rows = await db.query(query);
+      return Array.isArray(rows) ? rows.map(row => {
         if (row.disponibilidade) {
           try {
             row.disponibilidade = JSON.parse(row.disponibilidade);
@@ -169,7 +174,7 @@ class TatuadorDAO {
           }
         }
         return new Tatuador(row);
-      });
+      }) : [];
     } catch (error) {
       throw error;
     }

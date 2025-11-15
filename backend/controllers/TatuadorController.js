@@ -2,6 +2,43 @@ const TatuadorDAO = require('../dao/TatuadorDAO');
 const Tatuador = require('../models/Tatuador');
 
 class TatuadorController {
+    // Login de tatuador
+    static async login(req, res) {
+      try {
+        const { email, senha } = req.body;
+        if (!email || !senha) {
+          return res.status(400).json({
+            message: 'Email e senha são obrigatórios'
+          });
+        }
+        const tatuador = await TatuadorDAO.findByEmail(email);
+        if (!tatuador) {
+          return res.status(401).json({
+            message: 'Email ou senha inválidos'
+          });
+        }
+        // Verificar senha (simples, sem hash)
+        if (!tatuador.senha || tatuador.senha !== senha) {
+          return res.status(401).json({
+            message: 'Email ou senha inválidos'
+          });
+        }
+        // Gerar JWT
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: tatuador.id, email: tatuador.email }, process.env.JWT_SECRET || 'studio_tatuagem', { expiresIn: '1d' });
+        return res.json({
+          message: 'Login realizado com sucesso',
+          tatuador: tatuador.toJSON(),
+          token
+        });
+      } catch (error) {
+        console.error('Erro no login de tatuador:', error);
+        return res.status(500).json({
+          message: 'Erro interno do servidor',
+          error: error.message
+        });
+      }
+    }
   // Criar novo tatuador
   static async create(req, res) {
     try {

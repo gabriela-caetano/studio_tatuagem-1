@@ -48,10 +48,7 @@ function Relatorios() {
     tatuadorService.getTatuadores()
   );
 
-  // Garante que agendamentos seja sempre um array
-  const agendamentos = Array.isArray(agendamentosData?.data)
-    ? agendamentosData.data
-    : (Array.isArray(agendamentosData) ? agendamentosData : []);
+  const agendamentos = agendamentosData?.agendamentos || [];
   const clientes = clientesData?.data || [];
   const tatuadores = tatuadoresData?.data || [];
 
@@ -70,7 +67,7 @@ function Relatorios() {
     // Agendamentos por dia
     const porDia = {};
     agendamentos.forEach(a => {
-      const dia = moment(a.data).format('DD/MM');
+      const dia = moment(a.data_agendamento).format('DD/MM');
       porDia[dia] = (porDia[dia] || 0) + 1;
     });
 
@@ -84,7 +81,7 @@ function Relatorios() {
     agendamentos
       .filter(a => a.status === 'concluido')
       .forEach(a => {
-        const dia = moment(a.data).format('DD/MM');
+        const dia = moment(a.data_agendamento).format('DD/MM');
         faturamentoPorDia[dia] = (faturamentoPorDia[dia] || 0) + parseFloat(a.valor_estimado || 0);
       });
 
@@ -120,7 +117,7 @@ function Relatorios() {
   const calcularRelatorioAgendamentos = () => {
     return agendamentos.map(a => ({
       ...a,
-      data_formatada: moment(a.data).format('DD/MM/YYYY'),
+      data_formatada: moment(a.data_agendamento).format('DD/MM/YYYY'),
       valor_formatado: `R$ ${parseFloat(a.valor_estimado || 0).toFixed(2)}`
     }));
   };
@@ -205,7 +202,7 @@ function Relatorios() {
         total_concluidos: concluidos.length,
         total_gasto: totalGasto,
         ultima_visita: agendamentosCliente.length > 0
-          ? moment(Math.max(...agendamentosCliente.map(a => new Date(a.data)))).format('DD/MM/YYYY')
+          ? moment(Math.max(...agendamentosCliente.map(a => new Date(a.data_agendamento)))).format('DD/MM/YYYY')
           : 'Nunca'
       };
     }).sort((a, b) => b.total_gasto - a.total_gasto);
