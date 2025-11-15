@@ -29,13 +29,11 @@ class TatuadorDAO {
       console.log('📋 Query:', query);
       console.log('📋 Values:', values);
 
-      const [result] = await db.query(query, values);
+      const result = await db.query(query, values);
       console.log('✅ Insert result:', result);
       console.log('🆔 Insert ID:', result.insertId);
-      
       const novoTatuador = await this.findById(result.insertId);
       console.log('✅ Tatuador recuperado:', novoTatuador);
-      
       return novoTatuador;
     } catch (error) {
       console.error('❌ Erro no TatuadorDAO.create:', error);
@@ -48,12 +46,10 @@ class TatuadorDAO {
   static async findById(id) {
     try {
       const query = 'SELECT * FROM tatuadores WHERE id = ? AND ativo = 1';
-      const [rows] = await db.query(query, [id]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [id]);
+      if (!rows || rows.length === 0) {
         return null;
       }
-      
       const tatuador = rows[0];
       // Parse do JSON de disponibilidade
       if (tatuador.disponibilidade) {
@@ -74,12 +70,10 @@ class TatuadorDAO {
   static async findByEmail(email) {
     try {
       const query = 'SELECT * FROM tatuadores WHERE email = ? AND ativo = 1';
-      const [rows] = await db.query(query, [email]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [email]);
+      if (!rows || rows.length === 0) {
         return null;
       }
-      
       const tatuador = rows[0];
       if (tatuador.disponibilidade) {
         try {
@@ -134,9 +128,8 @@ class TatuadorDAO {
       query += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
       queryParams.push(limitNum, offset);
 
-      const [rows] = await db.query(query, queryParams);
-      const [countResult] = await db.query(countQuery, countParams);
-      
+      const rows = await db.query(query, queryParams);
+      const countResult = await db.query(countQuery, countParams);
       const tatuadores = rows.map(row => {
         if (row.disponibilidade) {
           try {
@@ -147,14 +140,13 @@ class TatuadorDAO {
         }
         return new Tatuador(row);
       });
-
       return {
         data: tatuadores,
         pagination: {
           page: pageNum,
           limit: limitNum,
-          total: countResult[0].total,
-          totalPages: Math.ceil(countResult[0].total / limitNum)
+          total: countResult[0]?.total || 0,
+          totalPages: Math.ceil((countResult[0]?.total || 0) / limitNum)
         }
       };
     } catch (error) {

@@ -18,8 +18,8 @@ class ServicoDAO {
         servicoData.duracao_estimada || null
       ];
 
-      const [result] = await db.query(query, values);
-      return await this.findById(result.insertId);
+      const result = await db.run(query, values);
+      return await this.findById(result.lastID);
     } catch (error) {
       console.error('ServicoDAO.create:', error);
       throw error;
@@ -30,12 +30,10 @@ class ServicoDAO {
   static async findById(id) {
     try {
       const query = 'SELECT * FROM servicos WHERE id = ? AND ativo = 1';
-      const [rows] = await db.query(query, [id]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [id]);
+      if (!rows || rows.length === 0) {
         return null;
       }
-      
       return new Servico(rows[0]);
     } catch (error) {
       console.error('ServicoDAO.findById:', error);
@@ -67,18 +65,18 @@ class ServicoDAO {
       query += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
       queryParams.push(limitNum, offset);
 
-      const [rows] = await db.query(query, queryParams);
-      const [countResult] = await db.query(countQuery, countParams);
-      
-      const servicos = rows.map(row => new Servico(row));
-
+      const rows = await db.query(query, queryParams);
+      const countResult = await db.query(countQuery, countParams);
+      const arrServicos = Array.isArray(rows) ? rows : [];
+      const arrCount = Array.isArray(countResult) ? countResult : [{ total: 0 }];
+      const servicos = arrServicos.map(row => new Servico(row));
       return {
         data: servicos,
         pagination: {
           page: pageNum,
           limit: limitNum,
-          total: countResult[0].total,
-          totalPages: Math.ceil(countResult[0].total / limitNum)
+          total: arrCount[0].total,
+          totalPages: Math.ceil(arrCount[0].total / limitNum)
         }
       };
     } catch (error) {
@@ -91,8 +89,9 @@ class ServicoDAO {
   static async findAllActive() {
     try {
       const query = 'SELECT id, nome, descricao, preco_base, duracao_estimada FROM servicos WHERE ativo = 1 ORDER BY nome ASC';
-      const [rows] = await db.query(query);
-      return rows.map(row => new Servico(row));
+      const rows = await db.query(query);
+      const arrServicos = Array.isArray(rows) ? rows : [];
+      return arrServicos.map(row => new Servico(row));
     } catch (error) {
       console.error('ServicoDAO.findAllActive:', error);
       throw error;
@@ -119,12 +118,10 @@ class ServicoDAO {
         id
       ];
 
-      const [result] = await db.query(query, values);
-      
-      if (result.affectedRows === 0) {
+      const result = await db.query(query, values);
+      if (!result || result.affectedRows === 0) {
         return null;
       }
-      
       return await this.findById(id);
     } catch (error) {
       console.error('ServicoDAO.update:', error);
@@ -136,9 +133,8 @@ class ServicoDAO {
   static async delete(id) {
     try {
       const query = 'UPDATE servicos SET ativo = 0 WHERE id = ?';
-      const [result] = await db.query(query, [id]);
-      
-      return result.affectedRows > 0;
+      const result = await db.query(query, [id]);
+      return result && result.affectedRows > 0;
     } catch (error) {
       console.error('ServicoDAO.delete:', error);
       throw error;
@@ -149,9 +145,8 @@ class ServicoDAO {
   static async reactivate(id) {
     try {
       const query = 'UPDATE servicos SET ativo = 1 WHERE id = ?';
-      const [result] = await db.query(query, [id]);
-      
-      return result.affectedRows > 0;
+      const result = await db.query(query, [id]);
+      return result && result.affectedRows > 0;
     } catch (error) {
       console.error('ServicoDAO.reactivate:', error);
       throw error;
@@ -169,7 +164,7 @@ class ServicoDAO {
         ORDER BY preco_base ASC
       `;
       
-      const [rows] = await db.query(query, [minPrice, maxPrice]);
+      const rows = await db.query(query, [minPrice, maxPrice]);
       return rows.map(row => new Servico(row));
     } catch (error) {
       console.error('ServicoDAO.findByPriceRange:', error);

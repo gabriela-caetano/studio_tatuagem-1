@@ -1,18 +1,18 @@
 const db = require('../config/database');
+const { run } = require('../config/database');
 const Agendamento = require('../models/Agendamento');
 
 class AgendamentoDAO {
   // Criar novo agendamento
   static async create(agendamentoData) {
     try {
-      const query = `
+      const sql = `
         INSERT INTO agendamentos (
           cliente_id, tatuador_id, servico_id, data_agendamento, 
           hora_inicio, hora_fim, descricao_tatuagem, valor_estimado, 
           status, observacoes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      
       const values = [
         agendamentoData.cliente_id,
         agendamentoData.tatuador_id,
@@ -25,9 +25,9 @@ class AgendamentoDAO {
         agendamentoData.status || 'agendado',
         agendamentoData.observacoes
       ];
-
-      const [result] = await db.query(query, values);
-      return await this.findById(result.insertId);
+      const { lastID } = await run(sql, values);
+      if (!lastID) throw new Error('Falha ao obter lastID do agendamento criado');
+      return await this.findById(lastID);
     } catch (error) {
       throw error;
     }
@@ -102,8 +102,8 @@ class AgendamentoDAO {
       
       query += ' ORDER BY a.data_agendamento ASC, a.hora_inicio ASC';
       
-      const [rows] = await db.query(query, queryParams);
-      return rows;
+      const rows = await db.query(query, queryParams);
+      return Array.isArray(rows) ? rows : [];
     } catch (error) {
       throw error;
     }
@@ -137,8 +137,9 @@ class AgendamentoDAO {
         queryParams.push(agendamentoId);
       }
       
-      const [rows] = await db.query(query, queryParams);
-      return rows.length === 0;
+      const rows = await db.query(query, queryParams);
+      const arrRows = Array.isArray(rows) ? rows : [];
+      return arrRows.length === 0;
     } catch (error) {
       throw error;
     }

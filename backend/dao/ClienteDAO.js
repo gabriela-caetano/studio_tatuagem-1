@@ -25,7 +25,7 @@ class ClienteDAO {
         clienteData.observacoes
       ];
 
-      const [result] = await db.query(query, values);
+      const result = await db.query(query, values);
       return await this.findById(result.insertId);
     } catch (error) {
       throw error;
@@ -36,12 +36,10 @@ class ClienteDAO {
   static async findById(id) {
     try {
       const query = 'SELECT * FROM clientes WHERE id = ? AND ativo = 1';
-      const [rows] = await db.query(query, [id]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [id]);
+      if (!rows || rows.length === 0) {
         return null;
       }
-      
       return new Cliente(rows[0]);
     } catch (error) {
       throw error;
@@ -52,12 +50,10 @@ class ClienteDAO {
   static async findByEmail(email) {
     try {
       const query = 'SELECT * FROM clientes WHERE email = ? AND ativo = 1';
-      const [rows] = await db.query(query, [email]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [email]);
+      if (!rows || rows.length === 0) {
         return null;
       }
-      
       return new Cliente(rows[0]);
     } catch (error) {
       throw error;
@@ -68,12 +64,10 @@ class ClienteDAO {
   static async findByCPF(cpf) {
     try {
       const query = 'SELECT * FROM clientes WHERE cpf = ? AND ativo = 1';
-      const [rows] = await db.query(query, [cpf]);
-      
-      if (rows.length === 0) {
+      const rows = await db.query(query, [cpf]);
+      if (!rows || rows.length === 0) {
         return null;
       }
-      
       return new Cliente(rows[0]);
     } catch (error) {
       throw error;
@@ -103,12 +97,10 @@ class ClienteDAO {
       // Usar concatenação direta (seguro pois já convertemos para int)
       query += ` ORDER BY nome ASC LIMIT ${offset}, ${limitNum}`;
 
-      const [rows] = await db.query(query, queryParams);
-      const [countResult] = await db.query(countQuery, search ? queryParams.slice(0, 3) : []);
-      
+      const rows = await db.query(query, queryParams);
+      const countResult = await db.query(countQuery, search ? queryParams.slice(0, 3) : []);
       const clientes = rows.map(row => new Cliente(row));
-      const total = countResult[0].total;
-      
+      const total = countResult[0]?.total || 0;
       return {
         clientes,
         pagination: {

@@ -92,6 +92,19 @@ function Servicos() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Validação dos campos obrigatórios
+    if (!formData.nome || formData.nome.trim().length < 2) {
+      alert('O nome do serviço é obrigatório e deve ter pelo menos 2 caracteres.');
+      return;
+    }
+    if (!formData.preco_base || parseFloat(formData.preco_base) <= 0) {
+      alert('O preço base deve ser maior que zero.');
+      return;
+    }
+    if (!formData.duracao_estimada || parseInt(formData.duracao_estimada) <= 0) {
+      alert('A duração estimada deve ser maior que zero.');
+      return;
+    }
     if (editingServico) {
       updateMutation.mutate({ id: editingServico.id, data: formData });
     } else {

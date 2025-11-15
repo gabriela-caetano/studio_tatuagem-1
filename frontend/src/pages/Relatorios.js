@@ -48,7 +48,10 @@ function Relatorios() {
     tatuadorService.getTatuadores()
   );
 
-  const agendamentos = agendamentosData?.data || [];
+  // Garante que agendamentos seja sempre um array
+  const agendamentos = Array.isArray(agendamentosData?.data)
+    ? agendamentosData.data
+    : (Array.isArray(agendamentosData) ? agendamentosData : []);
   const clientes = clientesData?.data || [];
   const tatuadores = tatuadoresData?.data || [];
 

@@ -21,6 +21,18 @@ function Agendamentos() {
     () => agendamentoService.getAgendamentos(filtros)
   );
 
+  // Garante que agendamentos seja sempre array
+  let agendamentos = [];
+  if (Array.isArray(data)) {
+    agendamentos = data;
+  } else if (data && Array.isArray(data.agendamentos)) {
+    agendamentos = data.agendamentos;
+  } else if (data && Array.isArray(data.data)) {
+    agendamentos = data.data;
+  } else {
+    agendamentos = [];
+  }
+
   const deleteMutation = useMutation(
     (id) => agendamentoService.deleteAgendamento(id),
     {
@@ -62,7 +74,7 @@ function Agendamentos() {
     );
   };
 
-  const agendamentos = data?.data || [];
+  // ...existing code...
 
   return (
     <div className="fade-in">

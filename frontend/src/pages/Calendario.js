@@ -42,10 +42,11 @@ function Calendario() {
     () => agendamentoService.getAgendamentos(periodo)
   );
 
-  const eventos = agendamentos?.data?.map(ag => {
+  // Garante que agendamentos.data é sempre array
+  const agendamentosArray = Array.isArray(agendamentos?.data) ? agendamentos.data : [];
+  const eventos = agendamentosArray.map(ag => {
     const dataHoraInicio = `${ag.data_agendamento}T${ag.hora_inicio}`;
     const dataHoraFim = `${ag.data_agendamento}T${ag.hora_fim}`;
-    
     return {
       id: ag.id,
       title: `${ag.cliente_nome} - ${ag.tatuador_nome}`,
@@ -53,7 +54,7 @@ function Calendario() {
       end: new Date(dataHoraFim),
       resource: ag
     };
-  }) || [];
+  });
 
   const eventStyleGetter = (event) => {
     const colors = {

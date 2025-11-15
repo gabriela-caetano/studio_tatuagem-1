@@ -100,9 +100,9 @@ class AgendamentoController {
         filters.data_fim = req.query.data_fim;
       }
       
-      const agendamentos = await AgendamentoDAO.findAll(filters);
+      let agendamentos = await AgendamentoDAO.findAll(filters);
+      if (!Array.isArray(agendamentos)) agendamentos = [];
       console.log('📋 Agendamentos encontrados:', agendamentos.length);
-      
       res.json({
         message: 'Agendamentos encontrados',
         data: agendamentos,
