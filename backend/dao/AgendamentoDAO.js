@@ -158,7 +158,7 @@ class AgendamentoDAO {
           cliente_id = ?, tatuador_id = ?, servico_id = ?, 
           data_agendamento = ?, hora_inicio = ?, hora_fim = ?, 
           descricao_tatuagem = ?, valor_estimado = ?, valor_final = ?,
-          status = ?, observacoes = ?, data_atualizacao = NOW()
+          status = ?, observacoes = ?, data_atualizacao = datetime('now')
         WHERE id = ?
       `;
       
@@ -177,11 +177,7 @@ class AgendamentoDAO {
         id
       ];
 
-      const [result] = await db.query(query, values);
-      
-      if (result.affectedRows === 0) {
-        return null;
-      }
+      await db.query(query, values);
       
       return await this.findById(id);
     } catch (error) {
@@ -195,15 +191,11 @@ class AgendamentoDAO {
       const query = `
         UPDATE agendamentos SET 
           status = ?, observacoes = COALESCE(?, observacoes), 
-          data_atualizacao = NOW()
+          data_atualizacao = datetime('now')
         WHERE id = ?
       `;
       
-      const [result] = await db.query(query, [status, observacoes, id]);
-      
-      if (result.affectedRows === 0) {
-        return null;
-      }
+      await db.query(query, [status, observacoes, id]);
       
       return await this.findById(id);
     } catch (error) {
@@ -215,9 +207,9 @@ class AgendamentoDAO {
   static async delete(id) {
     try {
       const query = 'DELETE FROM agendamentos WHERE id = ?';
-      const [result] = await db.query(query, [id]);
+      await db.query(query, [id]);
       
-      return result.affectedRows > 0;
+      return true;
     } catch (error) {
       throw error;
     }
@@ -240,8 +232,8 @@ class AgendamentoDAO {
         ORDER BY a.hora_inicio ASC
       `;
       
-      const [rows] = await db.query(query, [data]);
-      return rows;
+      const rows = await db.query(query, [data]);
+      return rows || [];
     } catch (error) {
       throw error;
     }
@@ -261,8 +253,8 @@ class AgendamentoDAO {
         WHERE YEAR(data_agendamento) = ? AND MONTH(data_agendamento) = ?
       `;
       
-      const [rows] = await db.query(query, [ano, mes]);
-      return rows[0];
+      const rows = await db.query(query, [ano, mes]);
+      return rows[0] || {};
     } catch (error) {
       throw error;
     }

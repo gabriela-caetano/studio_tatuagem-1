@@ -60,13 +60,24 @@ class Agendamento {
       errors.push('Status inválido');
     }
 
-    // Validar se a data não é no passado
-    const dataAgendamento = new Date(data.data_agendamento);
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    
-    if (dataAgendamento < hoje) {
-      errors.push('Data do agendamento não pode ser no passado');
+    // Validar se a data não é no passado (considerar hora de fim se fornecida)
+    if (data.data_agendamento && data.hora_fim) {
+      const dataHoraFim = new Date(`${data.data_agendamento}T${data.hora_fim}`);
+      const agora = new Date();
+      
+      if (dataHoraFim < agora) {
+        errors.push('Data do agendamento não pode ser no passado');
+      }
+    } else if (data.data_agendamento) {
+      // Se não tiver hora_fim, comparar só a data
+      const dataAgendamento = new Date(data.data_agendamento);
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      dataAgendamento.setHours(0, 0, 0, 0);
+      
+      if (dataAgendamento < hoje) {
+        errors.push('Data do agendamento não pode ser no passado');
+      }
     }
 
     return errors;

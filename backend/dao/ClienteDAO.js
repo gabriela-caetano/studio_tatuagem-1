@@ -147,11 +147,7 @@ class ClienteDAO {
         id
       ];
 
-      const [result] = await db.query(query, values);
-      
-      if (result.affectedRows === 0) {
-        return null;
-      }
+      await db.query(query, values);
       
       return await this.findById(id);
     } catch (error) {
@@ -163,9 +159,9 @@ class ClienteDAO {
   static async delete(id) {
     try {
       const query = 'UPDATE clientes SET ativo = 0 WHERE id = ?';
-      const [result] = await db.query(query, [id]);
+      await db.query(query, [id]);
       
-      return result.affectedRows > 0;
+      return true;
     } catch (error) {
       throw error;
     }

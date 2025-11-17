@@ -35,6 +35,27 @@ class Cliente {
       errors.push('CPF inválido');
     }
 
+    // Validar data de nascimento obrigatória
+    if (!data.data_nascimento) {
+      errors.push('Data de nascimento é obrigatória');
+    } else {
+      // Validar idade mínima de 18 anos
+      const dataNascimento = new Date(data.data_nascimento);
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - dataNascimento.getFullYear();
+      const mesAtual = hoje.getMonth();
+      const mesNascimento = dataNascimento.getMonth();
+      
+      // Ajustar idade se ainda não fez aniversário este ano
+      if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < dataNascimento.getDate())) {
+        idade--;
+      }
+      
+      if (idade < 18) {
+        errors.push('Cliente deve ter no mínimo 18 anos');
+      }
+    }
+
     return errors;
   }
 

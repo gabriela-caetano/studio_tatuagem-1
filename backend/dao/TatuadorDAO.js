@@ -248,16 +248,16 @@ class TatuadorDAO {
         AND data_agendamento >= CURDATE() 
         AND status IN ('agendado', 'confirmado')
       `;
-      const [checkResult] = await db.query(checkQuery, [id]);
+      const checkResult = await db.query(checkQuery, [id]);
       
       if (checkResult[0].count > 0) {
         throw new Error('Não é possível excluir tatuador com agendamentos futuros');
       }
 
       const query = 'UPDATE tatuadores SET ativo = 0 WHERE id = ?';
-      const [result] = await db.query(query, [id]);
+      await db.query(query, [id]);
       
-      return result.affectedRows > 0;
+      return true;
     } catch (error) {
       throw error;
     }
@@ -267,9 +267,9 @@ class TatuadorDAO {
   static async reactivate(id) {
     try {
       const query = 'UPDATE tatuadores SET ativo = 1 WHERE id = ?';
-      const [result] = await db.query(query, [id]);
+      await db.query(query, [id]);
       
-      return result.affectedRows > 0;
+      return true;
     } catch (error) {
       throw error;
     }
@@ -335,7 +335,7 @@ class TatuadorDAO {
         params.push(agendamentoIdExcluir);
       }
 
-      const [result] = await db.query(query, params);
+      const result = await db.query(query, params);
       return result[0].count === 0;
     } catch (error) {
       throw error;
@@ -366,7 +366,7 @@ class TatuadorDAO {
         params.push(mes);
       }
 
-      const [result] = await db.query(query, params);
+      const result = await db.query(query, params);
       return result[0];
     } catch (error) {
       throw error;

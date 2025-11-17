@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, Form, Button, Row, Col, Alert } from 'react-bootstrap';
+import { useQueryClient } from 'react-query';
 import { Save, ArrowLeft } from 'lucide-react';
 import { tatuadorService } from '../services';
 import { toast } from 'react-toastify';
@@ -8,6 +9,7 @@ import { toast } from 'react-toastify';
 function TatuadorForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const isEdit = !!id;
 
   const [loading, setLoading] = useState(false);
@@ -107,29 +109,44 @@ function TatuadorForm() {
         const result = await tatuadorService.updateTatuador(id, dataToSend);
         console.log('✅ Tatuador atualizado:', result);
         toast.success('Tatuador atualizado com sucesso!');
+        // Invalidar cache para forçar recarregamento da lista
+        queryClient.invalidateQueries('tatuadores');
       } else {
         const result = await tatuadorService.createTatuador(dataToSend);
         console.log('✅ Tatuador criado:', result);
         toast.success('Tatuador cadastrado com sucesso!');
+        // Invalidar cache para forçar recarregamento da lista
+        queryClient.invalidateQueries('tatuadores');
       }
       navigate('/tatuadores');
     } catch (error) {
       console.error('❌ Erro ao salvar tatuador:', error);
       console.error('Response:', error.response);
       
-      // Capturar mensagem de erro específica do backend
-      let errorMessage = 'Erro ao salvar tatuador. Verifique os dados e tente novamente.';
+      const errorData = error.response?.data;
       
-      if (error.response?.status === 409) {
-        errorMessage = error.response?.data?.message || 'Este email ou telefone já está cadastrado.';
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      // Se houver erros de validação específicos, exibi-los
+      if (errorData?.errors && Array.isArray(errorData.errors)) {
+        const errorMessages = errorData.errors.join('\n');
+        setError(errorMessages);
+        errorData.errors.forEach(err => {
+          toast.error(err);
+        });
+      } else {
+        // Capturar mensagem de erro específica do backend
+        let errorMessage = 'Erro ao salvar tatuador. Verifique os dados e tente novamente.';
+        
+        if (error.response?.status === 409) {
+          errorMessage = errorData?.message || 'Este email ou telefone já está cadastrado.';
+        } else if (errorData?.error) {
+          errorMessage = errorData.error;
+        } else if (errorData?.message) {
+          errorMessage = errorData.message;
+        }
+        
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
-      
-      setError(errorMessage);
-      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

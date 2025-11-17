@@ -10,10 +10,10 @@ function Agendamentos() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filtros, setFiltros] = useState({
-    dataInicio: moment().startOf('month').format('YYYY-MM-DD'),
-    dataFim: moment().endOf('month').format('YYYY-MM-DD'),
+    data_inicio: moment().startOf('month').format('YYYY-MM-DD'),
+    data_fim: moment().endOf('month').format('YYYY-MM-DD'),
     status: '',
-    tatuadorId: ''
+    tatuador_id: ''
   });
 
   const { data, isLoading, error } = useQuery(
@@ -62,7 +62,7 @@ function Agendamentos() {
     );
   };
 
-  const agendamentos = data?.data || [];
+  const agendamentos = data?.agendamentos || [];
 
   return (
     <div className="fade-in">
@@ -93,8 +93,8 @@ function Agendamentos() {
                 <Form.Label>Data Início</Form.Label>
                 <Form.Control
                   type="date"
-                  value={filtros.dataInicio}
-                  onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+                  value={filtros.data_inicio}
+                  onChange={(e) => setFiltros({ ...filtros, data_inicio: e.target.value })}
                 />
               </Form.Group>
             </Col>
@@ -103,8 +103,8 @@ function Agendamentos() {
                 <Form.Label>Data Fim</Form.Label>
                 <Form.Control
                   type="date"
-                  value={filtros.dataFim}
-                  onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+                  value={filtros.data_fim}
+                  onChange={(e) => setFiltros({ ...filtros, data_fim: e.target.value })}
                 />
               </Form.Group>
             </Col>
@@ -129,10 +129,10 @@ function Agendamentos() {
                 variant="outline-secondary"
                 className="mb-3"
                 onClick={() => setFiltros({
-                  dataInicio: moment().startOf('month').format('YYYY-MM-DD'),
-                  dataFim: moment().endOf('month').format('YYYY-MM-DD'),
+                  data_inicio: moment().startOf('month').format('YYYY-MM-DD'),
+                  data_fim: moment().endOf('month').format('YYYY-MM-DD'),
                   status: '',
-                  tatuadorId: ''
+                  tatuador_id: ''
                 })}
               >
                 Limpar Filtros

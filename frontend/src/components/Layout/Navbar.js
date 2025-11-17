@@ -25,7 +25,7 @@ function Navbar() {
         <Nav className="ms-auto">
           <Nav.Link href="/agendamentos" className="d-flex align-items-center">
             <Calendar className="me-1" size={16} />
-            Agendamentos do Dia
+            Agendamentos
           </Nav.Link>
           <Nav.Link href="/clientes" className="d-flex align-items-center">
             <Users className="me-1" size={16} />
@@ -34,13 +34,14 @@ function Navbar() {
           
           <NavDropdown 
             title={
-              <span className="d-flex align-items-center">
-                <UserCircle className="me-1" size={20} />
-                {user?.nome || 'Usuário'}
-              </span>
+              <>
+                <UserCircle className="me-1" size={20} style={{ verticalAlign: 'middle' }} />
+                <span style={{ verticalAlign: 'middle' }}>{user?.nome || 'Usuário'}</span>
+              </>
             } 
             id="user-dropdown"
             align="end"
+            className="d-inline-flex align-items-center"
           >
             <NavDropdown.Item href="/perfil">
               <UserCircle className="me-2" size={16} />

@@ -24,7 +24,7 @@ function Dashboard() {
     ? Math.round((dashboardData.estatisticas_mes_atual.concluidos / dashboardData.estatisticas_mes_atual.total_agendamentos) * 100)
     : 0;
   const { data: financeiroData } = useQuery('financeiro-chart', () => relatorioService.getFinanceiro(inicioAno, hoje));
-  const { data: agendamentosData } = useQuery('agendamentos-chart', () => relatorioService.getAgendamentos({ dataInicio: inicioMes, dataFim: hoje }));
+  const { data: agendamentosData } = useQuery('agendamentos-chart', () => relatorioService.getAgendamentos({ data_inicio: inicioMes, data_fim: hoje }));
 
   const getStatusBadge = (status) => {
     const statusMap = { agendado: 'warning', confirmado: 'info', em_andamento: 'primary', concluido: 'success', cancelado: 'danger' };
@@ -32,12 +32,29 @@ function Dashboard() {
     return <Badge bg={statusMap[status] || 'secondary'}>{statusText[status] || status}</Badge>;
   };
 
-  const agendamentosPorStatus = agendamentosData?.porStatus ? Object.entries(agendamentosData.porStatus).map(([status, count]) => ({ name: status, value: count })) : [];
+  const getStatusLabel = (status) => {
+    const statusText = { 
+      agendado: 'Agendado', 
+      confirmado: 'Confirmado', 
+      em_andamento: 'Em Andamento', 
+      concluido: 'Concluído', 
+      cancelado: 'Cancelado' 
+    };
+    return statusText[status] || status;
+  };
+
+  const agendamentosPorStatus = agendamentosData?.porStatus 
+    ? Object.entries(agendamentosData.porStatus).map(([status, count]) => ({ 
+        name: getStatusLabel(status), 
+        originalStatus: status,
+        value: count 
+      })) 
+    : [];
   const receitaMensal = financeiroData?.porMes || [];
 
   return (
     <div className="fade-in">
-      <h1 className="page-title">Dashboard</h1>
+      <h1 className="page-title">Dashboard <span className="text-muted text-size-small">Período de {new Date(inicioMes).toLocaleDateString('pt-BR')} até Hoje</span></h1>
       <Row className="mb-4">
         <Col md={3} sm={6} className="mb-3">
           <Card className="text-center h-100 shadow-sm">
@@ -77,7 +94,7 @@ function Dashboard() {
         </Col>
       </Row>
       <Row className="mb-4">
-        <Col lg={8} className="mb-3">
+        <Col lg={6} className="mb-3">
           <Card className="shadow-sm">
             <Card.Header><h5 className="mb-0">Receita Mensal</h5></Card.Header>
             <Card.Body>
@@ -96,10 +113,14 @@ function Dashboard() {
             </Card.Body>
           </Card>
         </Col>
-        <Col lg={4} className="mb-3">
+        <Col lg={6} className="mb-3">
           <Card className="shadow-sm">
-            <Card.Header><h5 className="mb-0">Agendamentos por Status</h5></Card.Header>
+            <Card.Header>
+              <h5 className="mb-0">Agendamentos por Status</h5>
+            </Card.Header>
             <Card.Body>
+              {console.log('Dados de agendamentos:', agendamentosData)}
+              {console.log('Agendamentos por status:', agendamentosPorStatus)}
               {agendamentosPorStatus.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>

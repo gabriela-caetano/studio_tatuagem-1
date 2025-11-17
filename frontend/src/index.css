@@ -294,3 +294,24 @@ input, textarea, select {
   min-height: 40px;
 }
 
+/* Navbar dropdown adjustments */
+.navbar-dark .navbar-nav .nav-link.dropdown-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem;
+}
+
+.navbar-dark .navbar-nav .nav-link.dropdown-toggle::after {
+  margin-left: 0.25rem;
+  vertical-align: middle;
+}
+
+/* Ou para remover completamente a seta do dropdown */
+#user-dropdown::after {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.text-size-small {
+  font-size: 1rem;
+}

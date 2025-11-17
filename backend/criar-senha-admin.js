@@ -8,9 +8,9 @@ async function criarSenhaAdmin() {
     const hash = await bcrypt.hash(senha, 10);
     
     console.log('\n📝 Atualizando senha do administrador...');
-    console.log('Email: admin@studio.com');
-    console.log('Senha: admin123');
-    console.log('Hash:', hash);
+    //console.log('Email: admin@studio.com');
+    //console.log('Senha: admin123');
+    //console.log('Hash:', hash);
     
     await db.execute(
       'UPDATE usuarios SET senha = ? WHERE email = ?',

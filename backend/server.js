@@ -69,9 +69,9 @@ app.use('/uploads', express.static('uploads'));
 async function startServer() {
   try {
     // 1. Primeiro, testar conexão com o banco
-    console.log('🔌 Conectando ao banco de dados...');
+    console.log('🔌 Testando conexão ao banco de dados...');
     await db.query('SELECT 1');
-    console.log('✅ Conectado ao banco de dados MySQL');
+    console.log('✅ Consulta teste ao banco de dados feita com sucesso!');
 
     // 2. Depois, importar e registrar as rotas
     console.log('📦 Carregando rotas...');

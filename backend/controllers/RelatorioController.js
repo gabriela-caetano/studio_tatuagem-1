@@ -73,12 +73,20 @@ class RelatorioController {
         estatisticas.ticketMedio = estatisticas.faturamento / estatisticas.concluidos;
       }
 
+      // Calcular agendamentos por status
+      const porStatus = agendamentos.reduce((acc, agendamento) => {
+        const status = agendamento.status || 'indefinido';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {});
+
       return res.json({
         periodo: {
           dataInicio: dataInicio || 'início',
           dataFim: dataFim || 'hoje'
         },
         estatisticas,
+        porStatus,
         agendamentos: Array.isArray(agendamentos) ? agendamentos : []
       });
     } catch (error) {

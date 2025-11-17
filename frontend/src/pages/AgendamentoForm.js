@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Alert, Row, Col, Spinner } from 'react-bootstrap';
 import { Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { toast } from 'react-toastify';
 import { agendamentoService, clienteService, tatuadorService, servicoService } from '../services';
 import api from '../services/api';
 
 function AgendamentoForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const isEditMode = !!id;
 
   const [formData, setFormData] = useState({
@@ -26,6 +28,7 @@ function AgendamentoForm() {
 
   const [conflitos, setConflitos] = useState([]);
   const [verificando, setVerificando] = useState(false);
+  const [isAgendamentoPastado, setIsAgendamentoPastado] = useState(false);
 
   // Buscar dados para edição
   const { data: agendamentoData } = useQuery(
@@ -35,16 +38,29 @@ function AgendamentoForm() {
       enabled: isEditMode,
       onSuccess: (data) => {
         if (data?.agendamento) {
+          const agendamento = data.agendamento;
+          // Formatar data_agendamento para YYYY-MM-DD (formato do input date)
+          let dataFormatada = '';
+          if (agendamento.data_agendamento) {
+            dataFormatada = agendamento.data_agendamento.split('T')[0];
+          }
+          
+          // Verificar se o agendamento já passou (considerar hora de fim)
+          const dataHoraFim = new Date(`${dataFormatada}T${agendamento.hora_fim}`);
+          const agora = new Date();
+          setIsAgendamentoPastado(dataHoraFim < agora);
+          
           setFormData({
-            cliente_id: data.agendamento.cliente_id || '',
-            tatuador_id: data.agendamento.tatuador_id || '',
-            servico_id: data.agendamento.servico_id || '',
-            data: data.agendamento.data || '',
-            hora_inicio: data.agendamento.hora_inicio || '',
-            hora_fim: data.agendamento.hora_fim || '',
-            status: data.agendamento.status || 'agendado',
-            valor_estimado: data.agendamento.valor_estimado || '',
-            observacoes: data.agendamento.observacoes || ''
+            cliente_id: agendamento.cliente_id || '',
+            tatuador_id: agendamento.tatuador_id || '',
+            servico_id: agendamento.servico_id || '',
+            data: dataFormatada,
+            hora_inicio: agendamento.hora_inicio || '',
+            hora_fim: agendamento.hora_fim || '',
+            status: agendamento.status || 'agendado',
+            valor_estimado: agendamento.valor_estimado || '',
+            descricao_tatuagem: agendamento.descricao_tatuagem || '',
+            observacoes: agendamento.observacoes || ''
           });
         }
       }
@@ -85,13 +101,26 @@ function AgendamentoForm() {
       : agendamentoService.createAgendamento(data),
     {
       onSuccess: () => {
+        // Invalidar cache para forçar recarregamento da lista
+        queryClient.invalidateQueries('agendamentos');
         navigate('/agendamentos');
       },
       onError: (error) => {
         console.error('❌ Erro ao salvar agendamento:', error);
         console.error('📝 Dados enviados:', formData);
         console.error('🔥 Resposta do servidor:', error.response?.data);
-        alert(`Erro ao salvar: ${error.response?.data?.message || error.message}`);
+        
+        const errorData = error.response?.data;
+        
+        // Se houver erros de validação específicos, exibi-los
+        if (errorData?.errors && Array.isArray(errorData.errors)) {
+          errorData.errors.forEach(err => {
+            toast.error(err);
+          });
+        } else {
+          const errorMessage = errorData?.message || error.message || 'Erro ao salvar agendamento';
+          toast.error(errorMessage);
+        }
       }
     }
   );
@@ -135,11 +164,24 @@ function AgendamentoForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (conflitos.length > 0) {
+    // Só verificar conflitos se não for agendamento passado (pois data/hora não podem ser alteradas)
+    if (!isAgendamentoPastado && conflitos.length > 0) {
       return;
     }
     
-    // Transformar os dados para o formato esperado pelo backend
+    // Para agendamentos passados, enviar apenas status e observações
+    if (isAgendamentoPastado) {
+      const dataToSend = {
+        status: formData.status,
+        observacoes: formData.observacoes || null
+      };
+      
+      console.log('📤 Atualizando agendamento passado (apenas status/observações):', dataToSend);
+      mutation.mutate(dataToSend);
+      return;
+    }
+    
+    // Para agendamentos futuros, transformar os dados para o formato esperado pelo backend
     const dataToSend = {
       cliente_id: formData.cliente_id,
       tatuador_id: formData.tatuador_id,
@@ -171,6 +213,12 @@ function AgendamentoForm() {
 
       <Card className="shadow-sm">
         <Card.Body>
+          {isEditMode && isAgendamentoPastado && (
+            <Alert variant="warning" className="mb-3">
+              <AlertTriangle size={20} className="me-2" />
+              <strong>Agendamento Passado:</strong> Este agendamento já ocorreu. Você pode atualizar o status e observações, mas a data e horário não podem ser alterados.
+            </Alert>
+          )}
           <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={6}>
@@ -181,6 +229,7 @@ function AgendamentoForm() {
                     value={formData.cliente_id}
                     onChange={handleChange}
                     required
+                    disabled={isAgendamentoPastado}
                   >
                     <option value="">Selecione um cliente</option>
                     {clientesData?.data?.map(cliente => (
@@ -200,6 +249,7 @@ function AgendamentoForm() {
                     value={formData.tatuador_id}
                     onChange={handleChange}
                     required
+                    disabled={isAgendamentoPastado}
                   >
                     <option value="">Selecione um tatuador</option>
                     {tatuadoresData?.data?.map(tatuador => (
@@ -220,6 +270,7 @@ function AgendamentoForm() {
                     name="servico_id"
                     value={formData.servico_id}
                     onChange={handleChange}
+                    disabled={isAgendamentoPastado}
                   >
                     <option value="">Serviço Personalizado</option>
                     {servicosData?.data?.map(servico => (
@@ -240,6 +291,7 @@ function AgendamentoForm() {
                     value={formData.data}
                     onChange={handleChange}
                     required
+                    disabled={isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -252,11 +304,23 @@ function AgendamentoForm() {
                     value={formData.status}
                     onChange={handleChange}
                   >
-                    <option value="agendado">Agendado</option>
-                    <option value="confirmado">Confirmado</option>
-                    <option value="em_andamento">Em Andamento</option>
-                    <option value="concluido">Concluído</option>
-                    <option value="cancelado">Cancelado</option>
+                    {isAgendamentoPastado ? (
+                      // Para agendamentos passados, apenas 3 opções
+                      <>
+                        <option value="em_andamento">Em Andamento (necessita mais sessões)</option>
+                        <option value="concluido">Concluído</option>
+                        <option value="cancelado">Cancelado</option>
+                      </>
+                    ) : (
+                      // Para agendamentos futuros, todas as opções
+                      <>
+                        <option value="agendado">Agendado</option>
+                        <option value="confirmado">Confirmado</option>
+                        <option value="em_andamento">Em Andamento</option>
+                        <option value="concluido">Concluído</option>
+                        <option value="cancelado">Cancelado</option>
+                      </>
+                    )}
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -272,6 +336,7 @@ function AgendamentoForm() {
                     value={formData.hora_inicio}
                     onChange={handleChange}
                     required
+                    disabled={isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -285,6 +350,7 @@ function AgendamentoForm() {
                     value={formData.hora_fim}
                     onChange={handleChange}
                     required
+                    disabled={isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -300,6 +366,7 @@ function AgendamentoForm() {
                     step="0.01"
                     min="0"
                     placeholder="0.00"
+                    disabled={isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -316,6 +383,7 @@ function AgendamentoForm() {
                 placeholder="Descreva a tatuagem desejada (mínimo 5 caracteres)..."
                 required
                 minLength={5}
+                disabled={isAgendamentoPastado}
               />
             </Form.Group>
 
@@ -332,7 +400,7 @@ function AgendamentoForm() {
             </Form.Group>
 
             {/* Alert de verificação */}
-            {verificando && (
+            {!isAgendamentoPastado && verificando && (
               <Alert variant="info" className="d-flex align-items-center">
                 <Spinner animation="border" size="sm" className="me-2" />
                 Verificando disponibilidade...
@@ -340,7 +408,7 @@ function AgendamentoForm() {
             )}
 
             {/* Alert de conflito */}
-            {!verificando && conflitos.length > 0 && (
+            {!isAgendamentoPastado && !verificando && conflitos.length > 0 && (
               <Alert variant="danger">
                 <AlertTriangle size={20} className="me-2" />
                 <strong>Conflito de Horário!</strong>
@@ -356,7 +424,7 @@ function AgendamentoForm() {
             )}
 
             {/* Alert de disponível */}
-            {!verificando && conflitos.length === 0 && formData.tatuador_id && formData.data && formData.hora_inicio && formData.hora_fim && (
+            {!isAgendamentoPastado && !verificando && conflitos.length === 0 && formData.tatuador_id && formData.data && formData.hora_inicio && formData.hora_fim && (
               <Alert variant="success">
                 <CheckCircle size={20} className="me-2" />
                 Horário disponível!
@@ -367,11 +435,12 @@ function AgendamentoForm() {
               <Button 
                 type="submit" 
                 variant="primary"
-                disabled={mutation.isLoading || conflitos.length > 0 || verificando}
+                disabled={mutation.isLoading || (!isAgendamentoPastado && (conflitos.length > 0 || verificando))}
               >
-                {verificando ? 'Verificando...' : 
+                {verificando && !isAgendamentoPastado ? 'Verificando...' : 
                  mutation.isLoading ? 'Salvando...' : 
-                 conflitos.length > 0 ? 'Horário Indisponível' : 
+                 !isAgendamentoPastado && conflitos.length > 0 ? 'Horário Indisponível' : 
+                 isAgendamentoPastado ? 'Atualizar Status' :
                  'Salvar'}
               </Button>
               <Button 

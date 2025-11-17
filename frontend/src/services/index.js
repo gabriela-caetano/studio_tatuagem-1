@@ -10,7 +10,13 @@ export const clienteService = {
   // Buscar cliente por ID
   getClienteById: async (id) => {
     const response = await api.get(`/clientes/${id}`);
-    return response.data;
+    return response.data.cliente || response.data;
+  },
+
+  // Alias para getClienteById
+  getCliente: async (id) => {
+    const response = await api.get(`/clientes/${id}`);
+    return response.data.cliente || response.data;
   },
 
   // Criar novo cliente

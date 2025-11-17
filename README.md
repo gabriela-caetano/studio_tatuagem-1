@@ -42,12 +42,7 @@ cd studio-tatuagem
 
 ### 2. Instale as dependências
 
-#### Usando o script automatizado (Windows)
-```powershell
-.\INICIAR-SISTEMA.ps1
-```
-
-#### Ou manualmente
+#### Usando o npm para instalar
 ```bash
 # Backend
 cd backend
@@ -60,24 +55,11 @@ npm install
 
 ### 3. Configure o banco de dados
 
-1. Crie um banco de dados MySQL:
-```sql
-CREATE DATABASE studio_tatuagem;
-```
+1. O sistema está utilizando o banco de dados SqLite e portanto é só rodar o sistema que irá funcionar.
 
-2. Configure as credenciais em `backend/config/database.js`:
-```javascript
-const config = {
-  host: 'localhost',
-  user: 'seu_usuario',
-  password: 'sua_senha',
-  database: 'studio_tatuagem'
-};
-```
-
-3. Execute o script de criação do banco:
+2. Caso queira modificar o tipo de banco de dados utilizado basta alterar o arquivo de conexão em:
 ```bash
-mysql -u seu_usuario -p studio_tatuagem < database/schema.sql
+backend/config/database.js
 ```
 
 ### 4. Inicie a aplicação
@@ -89,7 +71,7 @@ Pressione `Ctrl+Shift+B` e selecione "Iniciar Aplicação Completa"
 ```bash
 # Terminal 1 - Backend
 cd backend
-npm run dev
+npm start
 
 # Terminal 2 - Frontend
 cd frontend
@@ -244,11 +226,13 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 👥 Autores
 
-- **Isael** - Desenvolvimento Completo
+- **Isael** - Desenvolvimento
+- **Luiz Fernando** - Desenvolvimento 
+- **Gabriela** - Desenvolvimento
 
 ## 📞 Suporte
 
-Para suporte, envie um email para suporte@studio.com ou abra uma issue no GitHub.
+Para suporte, abra uma issue no GitHub.
 
 ---
 

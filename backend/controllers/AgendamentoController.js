@@ -127,6 +127,9 @@ class AgendamentoController {
       const { id } = req.params;
       const agendamentoData = req.body;
       
+      console.log('📝 Atualizando agendamento ID:', id);
+      console.log('📦 Dados recebidos:', agendamentoData);
+      
       // Buscar agendamento atual
       const agendamentoAtual = await AgendamentoDAO.findById(id);
       if (!agendamentoAtual) {
@@ -135,29 +138,116 @@ class AgendamentoController {
         });
       }
 
+      // Verificar se o agendamento já passou (considerar hora de fim)
+      const dataHoraFim = new Date(`${agendamentoAtual.data_agendamento.split('T')[0]}T${agendamentoAtual.hora_fim}`);
+      const agora = new Date();
+      const isAgendamentoPastado = dataHoraFim < agora;
+      
+      console.log('📅 Data/Hora fim do agendamento:', dataHoraFim);
+      console.log('🕐 Data/Hora atual:', agora);
+      console.log('⏰ É agendamento passado?', isAgendamentoPastado);
+
+      if (isAgendamentoPastado) {
+        console.log('⚠️ Processando atualização de agendamento passado');
+        // Para agendamentos passados, validar regras especiais
+        const statusPermitidos = ['em_andamento', 'concluido', 'cancelado'];
+        
+        // Verificar se está tentando alterar campos não permitidos
+        const camposAlterados = [];
+        if (agendamentoData.cliente_id && agendamentoData.cliente_id !== agendamentoAtual.cliente_id) {
+          camposAlterados.push('cliente');
+        }
+        if (agendamentoData.tatuador_id && agendamentoData.tatuador_id !== agendamentoAtual.tatuador_id) {
+          camposAlterados.push('tatuador');
+        }
+        if (agendamentoData.data_agendamento && agendamentoData.data_agendamento !== agendamentoAtual.data_agendamento.split('T')[0]) {
+          camposAlterados.push('data');
+        }
+        if (agendamentoData.hora_inicio && agendamentoData.hora_inicio !== agendamentoAtual.hora_inicio) {
+          camposAlterados.push('hora de início');
+        }
+        if (agendamentoData.hora_fim && agendamentoData.hora_fim !== agendamentoAtual.hora_fim) {
+          camposAlterados.push('hora de fim');
+        }
+        if (agendamentoData.servico_id && agendamentoData.servico_id !== agendamentoAtual.servico_id) {
+          camposAlterados.push('serviço');
+        }
+        if (agendamentoData.valor_estimado && agendamentoData.valor_estimado !== agendamentoAtual.valor_estimado) {
+          camposAlterados.push('valor estimado');
+        }
+        if (agendamentoData.descricao_tatuagem && agendamentoData.descricao_tatuagem !== agendamentoAtual.descricao_tatuagem) {
+          camposAlterados.push('descrição');
+        }
+
+        if (camposAlterados.length > 0) {
+          return res.status(400).json({ 
+            message: 'Agendamento já passou. Não é possível alterar: ' + camposAlterados.join(', '),
+            errors: [`Para agendamentos passados, apenas status (${statusPermitidos.join(', ')}) e observações podem ser alterados`]
+          });
+        }
+
+        // Validar status para agendamentos passados
+        if (agendamentoData.status && !statusPermitidos.includes(agendamentoData.status)) {
+          return res.status(400).json({ 
+            message: 'Status inválido para agendamento passado',
+            errors: [`Para agendamentos passados, apenas os seguintes status são permitidos: ${statusPermitidos.join(', ')}`]
+          });
+        }
+
+        // Permitir apenas alteração de status e observações
+        const dadosPermitidos = {
+          status: agendamentoData.status || agendamentoAtual.status,
+          observacoes: agendamentoData.observacoes !== undefined ? agendamentoData.observacoes : agendamentoAtual.observacoes
+        };
+
+        // Usar updateStatus que é mais adequado para atualizar apenas status e observações
+        console.log('✅ Atualizando apenas status e observações:', dadosPermitidos);
+        const agendamentoAtualizado = await AgendamentoDAO.updateStatus(
+          id, 
+          dadosPermitidos.status, 
+          dadosPermitidos.observacoes
+        );
+        
+        console.log('✅ Agendamento atualizado com sucesso');
+        return res.json({
+          message: 'Status do agendamento atualizado com sucesso',
+          agendamento: agendamentoAtualizado
+        });
+      }
+
+      // Para agendamentos futuros, seguir fluxo normal
+      console.log('✅ Processando atualização de agendamento futuro');
       // Verificar se pode ser alterado
       const agendamento = new Agendamento(agendamentoAtual);
+      console.log('🔍 Verificando se pode ser alterado...');
       if (!agendamento.podeSerAlterado()) {
+        console.log('❌ Agendamento não pode ser alterado');
         return res.status(400).json({ 
           message: 'Agendamento não pode ser alterado neste status' 
         });
       }
+      console.log('✅ Agendamento pode ser alterado');
 
       // Validar dados
+      console.log('🔍 Validando dados...');
       const errors = Agendamento.validate(agendamentoData);
       if (errors.length > 0) {
+        console.log('❌ Dados inválidos:', errors);
         return res.status(400).json({ 
           message: 'Dados inválidos', 
           errors 
         });
       }
+      console.log('✅ Dados válidos');
 
       // Verificar disponibilidade se data/hora foram alteradas
+      console.log('🔍 Verificando se precisa checar disponibilidade...');
       if (agendamentoData.data_agendamento !== agendamentoAtual.data_agendamento ||
           agendamentoData.hora_inicio !== agendamentoAtual.hora_inicio ||
           agendamentoData.hora_fim !== agendamentoAtual.hora_fim ||
           agendamentoData.tatuador_id !== agendamentoAtual.tatuador_id) {
         
+        console.log('🔍 Verificando disponibilidade...');
         const disponivel = await AgendamentoDAO.verificarDisponibilidade(
           agendamentoData.tatuador_id,
           agendamentoData.data_agendamento,
@@ -167,22 +257,31 @@ class AgendamentoController {
         );
 
         if (!disponivel) {
+          console.log('❌ Horário não disponível');
           return res.status(409).json({ 
             message: 'Horário não disponível para este tatuador' 
           });
         }
+        console.log('✅ Horário disponível');
+      } else {
+        console.log('⏩ Não precisa verificar disponibilidade (data/hora não mudaram)');
       }
 
+      console.log('💾 Salvando agendamento...');
       const agendamentoAtualizado = await AgendamentoDAO.update(id, agendamentoData);
       
+      console.log('✅ Agendamento salvo com sucesso!');
       res.json({
         message: 'Agendamento atualizado com sucesso',
         agendamento: agendamentoAtualizado
       });
     } catch (error) {
-      console.error('Erro ao atualizar agendamento:', error);
+      console.error('❌ Erro ao atualizar agendamento:', error);
+      console.error('Stack trace:', error.stack);
       res.status(500).json({ 
-        message: 'Erro interno do servidor' 
+        message: 'Erro interno do servidor',
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }

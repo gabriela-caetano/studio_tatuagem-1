@@ -64,6 +64,7 @@ function AppContent() {
                   
                 <Route path="/clientes" element={<PrivateRoute><Clientes /></PrivateRoute>} />
                 <Route path="/clientes/novo" element={<PrivateRoute><ClienteForm /></PrivateRoute>} />
+                <Route path="/clientes/:id" element={<PrivateRoute><ClienteForm /></PrivateRoute>} />
                 <Route path="/clientes/:id/editar" element={<PrivateRoute><ClienteForm /></PrivateRoute>} />
                 
                 <Route path="/agendamentos" element={<PrivateRoute><Agendamentos /></PrivateRoute>} />

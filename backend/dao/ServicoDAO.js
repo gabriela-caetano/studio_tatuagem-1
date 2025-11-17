@@ -145,10 +145,10 @@ class ServicoDAO {
   // Reativar serviço
   static async reactivate(id) {
     try {
-      const query = 'UPDATE servicos SET ativo = 1 WHERE id = ?';
-      const [result] = await db.query(query, [id]);
+      const query = 'UPDATE servicos SET ativo = 0 WHERE id = ?';
+      await db.query(query, [id]);
       
-      return result.affectedRows > 0;
+      return true;
     } catch (error) {
       console.error('ServicoDAO.reactivate:', error);
       throw error;
