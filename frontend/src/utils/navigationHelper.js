@@ -27,7 +27,6 @@ export const saveNavigationHistory = (from, to, type) => {
     type,
     timestamp: new Date().toISOString()
   };
-  console.log('🔵 [NAVIGATION] Salvando histórico:', history);
   sessionStorage.setItem(NAVIGATION_HISTORY_KEY, JSON.stringify(history));
 };
 
@@ -39,14 +38,12 @@ export const getNavigationHistory = () => {
   if (history) {
     try {
       const parsed = JSON.parse(history);
-      console.log('🟢 [NAVIGATION] Recuperando histórico:', parsed);
       return parsed;
     } catch (e) {
-      console.error('🔴 [NAVIGATION] Erro ao parsear histórico:', e);
+      console.error('[NAVIGATION] Erro ao parsear histórico:', e);
       return null;
     }
   }
-  console.log('⚪ [NAVIGATION] Nenhum histórico encontrado');
   return null;
 };
 
@@ -61,32 +58,26 @@ export const clearNavigationHistory = () => {
  * Verifica se deve limpar o storage baseado no histórico
  */
 export const shouldClearStorage = (currentRoute) => {
-  console.log('🟡 [STORAGE] Verificando se deve limpar storage para:', currentRoute);
   const history = getNavigationHistory();
   
   if (!history) {
     // Primeira vez na página - não limpar
-    console.log('⚪ [STORAGE] Nenhum histórico - NÃO limpar');
     return false;
   }
   
   // Se o destino não é a rota atual, não processar
   if (history.to !== currentRoute) {
-    console.log('⚠️ [STORAGE] Destino diferente da rota atual - NÃO limpar', {to: history.to, current: currentRoute});
     return false;
   }
   
   // Decisão baseada no tipo de navegação
-  console.log('🔍 [STORAGE] Tipo de navegação:', history.type);
   switch (history.type) {
     case NAVIGATION_TYPES.MENU:
       // Vindo de menu - LIMPA
-      console.log('🗑️ [STORAGE] Vindo de MENU - LIMPAR');
       return true;
     
     case NAVIGATION_TYPES.FORM_SAVE:
       // Salvou formulário - LIMPA
-      console.log('🗑️ [STORAGE] Vindo de FORM_SAVE - LIMPAR');
       return true;
     
     case NAVIGATION_TYPES.FORM_VIEW:
@@ -95,7 +86,6 @@ export const shouldClearStorage = (currentRoute) => {
     case NAVIGATION_TYPES.INTERNAL:
     default:
       // Navegação interna - MANTÉM
-      console.log('✅ [STORAGE] Navegação interna - MANTER storage');
       return false;
   }
 };
@@ -145,22 +135,17 @@ export const navigateAfterSave = (navigate, route) => {
  * Sempre volta para a listagem mantendo o estado
  */
 export const navigateBack = (navigate, defaultRoute) => {
-  console.log('🔙 [NAVIGATION] navigateBack chamado, rota padrão:', defaultRoute);
   const history = getNavigationHistory();
   
   // Se temos histórico e o from é a rota da listagem, voltar para lá
   if (history && history.from) {
-    console.log('📋 [NAVIGATION] Verificando history.from:', history.from);
     // Verificar se o from é uma rota de listagem (não é um formulário)
     const isListingRoute = !history.from.includes('/novo') && 
                            !history.from.includes('/editar') && 
                            !history.from.match(/\/\d+$/);
     
-    console.log('🔍 [NAVIGATION] É rota de listagem?', isListingRoute);
-    
     if (isListingRoute) {
       // Voltar para a listagem mantendo estado (INTERNAL)
-      console.log('✅ [NAVIGATION] Voltando para listagem:', history.from);
       saveNavigationHistory(window.location.pathname, history.from, NAVIGATION_TYPES.INTERNAL);
       navigate(history.from);
       return;
@@ -168,7 +153,6 @@ export const navigateBack = (navigate, defaultRoute) => {
   }
   
   // Fallback: ir para rota padrão mantendo estado
-  console.log('⚠️ [NAVIGATION] Fallback: indo para rota padrão:', defaultRoute);
   saveNavigationHistory(window.location.pathname, defaultRoute, NAVIGATION_TYPES.INTERNAL);
   navigate(defaultRoute);
 };

@@ -44,30 +44,22 @@ class TatuadorController {
   // Criar novo tatuador
   static async create(req, res) {
     try {
-      console.log('📝 TatuadorController.create - Dados recebidos:', req.body);
-      
       // Validar dados
       const errors = Tatuador.validate(req.body);
       if (errors.length > 0) {
-        console.log('❌ Validação falhou:', errors);
         return res.status(400).json({ 
           message: 'Dados inválidos', 
           errors 
         });
       }
 
-      console.log('✅ Validação OK');
-
       // Verificar se email já existe
       const tatuadorExistente = await TatuadorDAO.findByEmail(req.body.email);
       if (tatuadorExistente) {
-        console.log('⚠️  Email já existe:', req.body.email);
         return res.status(409).json({ 
           message: 'Email já cadastrado' 
         });
       }
-
-      console.log('📤 Enviando para TatuadorDAO.create...');
       
       // Adicionar senha padrão se não fornecida
       const dadosTatuador = {
@@ -76,7 +68,6 @@ class TatuadorController {
       };
       
       const tatuador = await TatuadorDAO.create(dadosTatuador);
-      console.log('✅ Tatuador criado:', tatuador);
       
       // Criar usuário vinculado ao tatuador
       try {
@@ -86,9 +77,8 @@ class TatuadorController {
            VALUES (?, ?, ?, 'tatuador', ?, 1)`,
           [tatuador.nome, tatuador.email, senhaHash, tatuador.id]
         );
-        console.log('✅ Usuário criado para o tatuador');
       } catch (userError) {
-        console.warn('⚠️ Erro ao criar usuário (pode já existir):', userError.message);
+        console.warn('Erro ao criar usuário (pode já existir):', userError.message);
       }
       
       return res.status(201).json({
@@ -96,7 +86,7 @@ class TatuadorController {
         data: tatuador
       });
     } catch (error) {
-      console.error('❌ Erro ao criar tatuador:', error);
+      console.error('Erro ao criar tatuador:', error);
       console.error('Stack:', error.stack);
       return res.status(500).json({ 
         message: 'Erro ao cadastrar tatuador',

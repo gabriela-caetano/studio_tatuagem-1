@@ -94,7 +94,7 @@ function AgendamentoForm() {
       ...(isAdmin() ? {} : { ativo: 1 })
     }), {
     onSuccess: (data) => {
-      console.log('📋 Clientes carregados:', data);
+      //console.log('Clientes carregados:', data);
     }
   });
 
@@ -105,7 +105,7 @@ function AgendamentoForm() {
     }).then(res => res.data),
     {
       onSuccess: (data) => {
-        console.log('👨‍🎨 Tatuadores carregados:', data);
+        //console.log('Tatuadores carregados:', data);
       }
     }
   );
@@ -115,7 +115,7 @@ function AgendamentoForm() {
     api.get('/servicos', { params: { ativo: 1 } }).then(res => res.data),
     {
       onSuccess: (data) => {
-        console.log('💼 Serviços carregados:', data);
+        //console.log('Serviços carregados:', data);
       }
     }
   );
@@ -134,9 +134,9 @@ function AgendamentoForm() {
         navigateAfterSave(navigate, '/agendamentos');
       },
       onError: (error) => {
-        console.error('❌ Erro ao salvar agendamento:', error);
-        console.error('📝 Dados enviados:', formData);
-        console.error('🔥 Resposta do servidor:', error.response?.data);
+        console.error('Erro ao salvar agendamento:', error);
+        console.error('Dados enviados:', formData);
+        console.error('Resposta do servidor:', error.response?.data);
         
         const errorData = error.response?.data;
         
@@ -204,7 +204,6 @@ function AgendamentoForm() {
         observacoes: formData.observacoes || null
       };
       
-      console.log('📤 Atualizando agendamento passado (apenas status/observações):', dataToSend);
       mutation.mutate(dataToSend);
       return;
     }
@@ -223,7 +222,6 @@ function AgendamentoForm() {
       observacoes: formData.observacoes || null
     };
     
-    console.log('📤 Enviando dados:', dataToSend);
     mutation.mutate(dataToSend);
   };
 

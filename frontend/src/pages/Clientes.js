@@ -27,20 +27,12 @@ function Clientes() {
   
   // Restaurar estado do sessionStorage ou usar valores padrão
   const getInitialPage = () => {
-    console.log('📦 [CLIENTES] Valores no storage page:', {
-      page: sessionStorage.getItem(STORAGE_KEYS.PAGE),
-      shouldClear: shouldClear
-    });
     if (shouldClear) return 1;
     const savedPage = sessionStorage.getItem(STORAGE_KEYS.PAGE);
     return savedPage ? parseInt(savedPage) : 1;
   };
 
   const getInitialSearch = () => {
-    console.log('📦 [CLIENTES] Valores no storage search:', {
-      search: sessionStorage.getItem(STORAGE_KEYS.SEARCH),
-      shouldClear: shouldClear
-    });
     if (shouldClear) return '';
     const savedSearch = sessionStorage.getItem(STORAGE_KEYS.SEARCH);
     return savedSearch || '';
@@ -56,7 +48,6 @@ function Clientes() {
   // Limpar storage apenas UMA VEZ se necessário
   useEffect(() => {
     if (isExactRoute && shouldClear) {
-      console.log('🧹 [CLIENTES] Limpando storage no mount');
       sessionStorage.removeItem(STORAGE_KEYS.PAGE);
       sessionStorage.removeItem(STORAGE_KEYS.SEARCH);
     }

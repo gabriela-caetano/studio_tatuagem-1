@@ -119,8 +119,6 @@ function Dashboard() {
               <h5 className="mb-0">Agendamentos por Status</h5>
             </Card.Header>
             <Card.Body>
-              {console.log('Dados de agendamentos:', agendamentosData)}
-              {console.log('Agendamentos por status:', agendamentosPorStatus)}
               {agendamentosPorStatus.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>

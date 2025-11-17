@@ -11,12 +11,12 @@ const PORT = process.env.PORT || 3001;
 
 // Capturar erros não tratados
 process.on('uncaughtException', (error) => {
-  console.error('❌ UNCAUGHT EXCEPTION:', error);
+  console.error('UNCAUGHT EXCEPTION:', error);
   console.error('Stack:', error.stack);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ UNHANDLED REJECTION:', reason);
+  console.error('UNHANDLED REJECTION:', reason);
   console.error('Promise:', promise);
 });
 
@@ -58,7 +58,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Log de requisições
 app.use((req, res, next) => {
-  console.log(`📨 ${req.method} ${req.url}`);
+  console.log(`${req.method} ${req.url}`);
   next();
 });
 
@@ -69,12 +69,12 @@ app.use('/uploads', express.static('uploads'));
 async function startServer() {
   try {
     // 1. Primeiro, testar conexão com o banco
-    console.log('🔌 Testando conexão ao banco de dados...');
+    console.log('Testando conexão ao banco de dados...');
     await db.query('SELECT 1');
-    console.log('✅ Consulta teste ao banco de dados feita com sucesso!');
+    console.log('Consulta teste ao banco de dados feita com sucesso!');
 
     // 2. Depois, importar e registrar as rotas
-    console.log('📦 Carregando rotas...');
+    console.log('Carregando rotas...');
     const clienteRoutes = require('./routes/clienteRoutes');
     const tatuadorRoutes = require('./routes/tatuadorRoutes');
     const agendamentoRoutes = require('./routes/agendamentoRoutes');
@@ -88,11 +88,11 @@ async function startServer() {
     app.use('/api/agendamentos', agendamentoRoutes);
     app.use('/api/servicos', servicoRoutes);
     app.use('/api/relatorios', relatorioRoutes);
-    console.log('✅ Rotas carregadas');
+    console.log('Rotas carregadas');
 
     // 3. Rota de health check
     app.get('/health', (req, res) => {
-      console.log('🏥 Health check requisitado');
+      console.log('Health check requisitado');
       res.status(200).json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
@@ -103,7 +103,7 @@ async function startServer() {
 
     // 4. Middleware de tratamento de erros
     app.use((err, req, res, next) => {
-      console.error('❌ Erro capturado no middleware:', err.message);
+      console.error('Erro capturado no middleware:', err.message);
       console.error('Stack:', err.stack);
       res.status(500).json({ 
         message: 'Erro interno do servidor',
@@ -113,19 +113,19 @@ async function startServer() {
 
     // 5. Middleware para rotas não encontradas
     app.use('*', (req, res) => {
-      console.log('❓ Rota não encontrada:', req.originalUrl);
+      console.log('Rota não encontrada:', req.originalUrl);
       res.status(404).json({ message: 'Rota não encontrada' });
     });
 
     // 6. Iniciar o servidor
     app.listen(PORT, () => {
-      console.log(`✅ Servidor rodando na porta ${PORT}`);
-      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🚀 Sistema pronto para uso!`);
+      console.log(`Servidor rodando na porta ${PORT}`);
+      console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Sistema pronto para uso!`);
     });
 
   } catch (error) {
-    console.error('❌ Erro ao iniciar servidor:', error);
+    console.error('Erro ao iniciar servidor:', error);
     console.error('Stack:', error.stack);
     process.exit(1);
   }

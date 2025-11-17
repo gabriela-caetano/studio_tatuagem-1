@@ -100,8 +100,6 @@ function TatuadorForm() {
     setError('');
 
     try {
-      console.log('📤 Enviando dados do tatuador:', formData);
-      
       const dataToSend = {
         ...formData,
         valor_hora: parseFloat(formData.valor_hora) || 0,
@@ -109,24 +107,20 @@ function TatuadorForm() {
         disponibilidade: formData.disponibilidade || {},
       };
 
-      console.log('📦 Dados preparados:', dataToSend);
-
       if (isEdit) {
         const result = await tatuadorService.updateTatuador(id, dataToSend);
-        console.log('✅ Tatuador atualizado:', result);
         toast.success('Tatuador atualizado com sucesso!');
         // Invalidar cache para forçar recarregamento da lista
         queryClient.invalidateQueries('tatuadores');
       } else {
         const result = await tatuadorService.createTatuador(dataToSend);
-        console.log('✅ Tatuador criado:', result);
         toast.success('Tatuador cadastrado com sucesso!');
         // Invalidar cache para forçar recarregamento da lista
         queryClient.invalidateQueries('tatuadores');
       }
       navigate('/tatuadores');
     } catch (error) {
-      console.error('❌ Erro ao salvar tatuador:', error);
+      console.error('Erro ao salvar tatuador:', error);
       console.error('Response:', error.response);
       
       const errorData = error.response?.data;

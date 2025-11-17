@@ -7,7 +7,6 @@ class AgendamentoController {
   static async create(req, res) {
     try {
       const agendamentoData = req.body;
-      console.log('📝 Dados recebidos:', agendamentoData);
       
       // Se for tatuador, forçar o tatuador_id para o próprio usuário
       if (req.usuario && req.usuario.tipo === 'tatuador') {
@@ -17,7 +16,6 @@ class AgendamentoController {
       // Validar dados
       const errors = Agendamento.validate(agendamentoData);
       if (errors.length > 0) {
-        console.log('❌ Erros de validação:', errors);
         return res.status(400).json({ 
           message: 'Dados inválidos', 
           errors 
@@ -27,12 +25,10 @@ class AgendamentoController {
       // Verificar se o cliente existe
       const cliente = await ClienteDAO.findById(agendamentoData.cliente_id);
       if (!cliente) {
-        console.log('❌ Cliente não encontrado:', agendamentoData.cliente_id);
         return res.status(404).json({ 
           message: 'Cliente não encontrado' 
         });
       }
-      console.log('✅ Cliente encontrado:', cliente.nome);
 
       // Verificar disponibilidade do tatuador
       const disponivel = await AgendamentoDAO.verificarDisponibilidade(
@@ -43,22 +39,19 @@ class AgendamentoController {
       );
 
       if (!disponivel) {
-        console.log('❌ Horário não disponível');
         return res.status(409).json({ 
           message: 'Horário não disponível para este tatuador' 
         });
       }
-      console.log('✅ Horário disponível');
 
       const agendamento = await AgendamentoDAO.create(agendamentoData);
-      console.log('✅ Agendamento criado:', agendamento);
       
       res.status(201).json({
         message: 'Agendamento criado com sucesso',
         agendamento
       });
     } catch (error) {
-      console.error('💥 Erro ao criar agendamento:', error);
+      console.error('Erro ao criar agendamento:', error);
       res.status(500).json({ 
         message: 'Erro interno do servidor',
         error: error.message
@@ -119,7 +112,6 @@ class AgendamentoController {
       }
       
       const result = await AgendamentoDAO.findAll(filters);
-      console.log('📋 Agendamentos encontrados:', result.data.length);
       
       res.json({
         message: 'Agendamentos encontrados',
@@ -139,9 +131,6 @@ class AgendamentoController {
     try {
       const { id } = req.params;
       const agendamentoData = req.body;
-      
-      console.log('📝 Atualizando agendamento ID:', id);
-      console.log('📦 Dados recebidos:', agendamentoData);
       
       // Buscar agendamento atual
       const agendamentoAtual = await AgendamentoDAO.findById(id);
@@ -168,13 +157,8 @@ class AgendamentoController {
       const dataHoraFim = new Date(`${agendamentoAtual.data_agendamento.split('T')[0]}T${agendamentoAtual.hora_fim}`);
       const agora = new Date();
       const isAgendamentoPastado = dataHoraFim < agora;
-      
-      console.log('📅 Data/Hora fim do agendamento:', dataHoraFim);
-      console.log('🕐 Data/Hora atual:', agora);
-      console.log('⏰ É agendamento passado?', isAgendamentoPastado);
 
       if (isAgendamentoPastado) {
-        console.log('⚠️ Processando atualização de agendamento passado');
         // Para agendamentos passados, validar regras especiais
         const statusPermitidos = ['em_andamento', 'concluido', 'cancelado'];
         
@@ -227,14 +211,12 @@ class AgendamentoController {
         };
 
         // Usar updateStatus que é mais adequado para atualizar apenas status e observações
-        console.log('✅ Atualizando apenas status e observações:', dadosPermitidos);
         const agendamentoAtualizado = await AgendamentoDAO.updateStatus(
           id, 
           dadosPermitidos.status, 
           dadosPermitidos.observacoes
         );
         
-        console.log('✅ Agendamento atualizado com sucesso');
         return res.json({
           message: 'Status do agendamento atualizado com sucesso',
           agendamento: agendamentoAtualizado
@@ -242,38 +224,29 @@ class AgendamentoController {
       }
 
       // Para agendamentos futuros, seguir fluxo normal
-      console.log('✅ Processando atualização de agendamento futuro');
       // Verificar se pode ser alterado
       const agendamento = new Agendamento(agendamentoAtual);
-      console.log('🔍 Verificando se pode ser alterado...');
       if (!agendamento.podeSerAlterado()) {
-        console.log('❌ Agendamento não pode ser alterado');
         return res.status(400).json({ 
           message: 'Agendamento não pode ser alterado neste status' 
         });
       }
-      console.log('✅ Agendamento pode ser alterado');
 
       // Validar dados
-      console.log('🔍 Validando dados...');
       const errors = Agendamento.validate(agendamentoData);
       if (errors.length > 0) {
-        console.log('❌ Dados inválidos:', errors);
         return res.status(400).json({ 
           message: 'Dados inválidos', 
           errors 
         });
       }
-      console.log('✅ Dados válidos');
 
       // Verificar disponibilidade se data/hora foram alteradas
-      console.log('🔍 Verificando se precisa checar disponibilidade...');
       if (agendamentoData.data_agendamento !== agendamentoAtual.data_agendamento ||
           agendamentoData.hora_inicio !== agendamentoAtual.hora_inicio ||
           agendamentoData.hora_fim !== agendamentoAtual.hora_fim ||
           agendamentoData.tatuador_id !== agendamentoAtual.tatuador_id) {
         
-        console.log('🔍 Verificando disponibilidade...');
         const disponivel = await AgendamentoDAO.verificarDisponibilidade(
           agendamentoData.tatuador_id,
           agendamentoData.data_agendamento,
@@ -283,26 +256,20 @@ class AgendamentoController {
         );
 
         if (!disponivel) {
-          console.log('❌ Horário não disponível');
           return res.status(409).json({ 
             message: 'Horário não disponível para este tatuador' 
           });
         }
-        console.log('✅ Horário disponível');
-      } else {
-        console.log('⏩ Não precisa verificar disponibilidade (data/hora não mudaram)');
       }
 
-      console.log('💾 Salvando agendamento...');
       const agendamentoAtualizado = await AgendamentoDAO.update(id, agendamentoData);
       
-      console.log('✅ Agendamento salvo com sucesso!');
       res.json({
         message: 'Agendamento atualizado com sucesso',
         agendamento: agendamentoAtualizado
       });
     } catch (error) {
-      console.error('❌ Erro ao atualizar agendamento:', error);
+      console.error('Erro ao atualizar agendamento:', error);
       console.error('Stack trace:', error.stack);
       res.status(500).json({ 
         message: 'Erro interno do servidor',

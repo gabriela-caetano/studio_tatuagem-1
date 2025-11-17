@@ -18,9 +18,9 @@ function Sidebar() {
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/clientes', icon: Users, label: 'Clientes', useNavigationHelper: true },
-    { path: '/agendamentos', icon: Clock, label: 'Agendamentos', useNavigationHelper: true },
     { path: '/calendario', icon: Calendar, label: 'Calendário' },
+    { path: '/agendamentos', icon: Clock, label: 'Agendamentos', useNavigationHelper: true },
+    { path: '/clientes', icon: Users, label: 'Clientes', useNavigationHelper: true },
     { path: '/tatuadores', icon: UserCheck, label: 'Tatuadores' },
     { path: '/servicos', icon: Settings, label: 'Serviços' },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios' },

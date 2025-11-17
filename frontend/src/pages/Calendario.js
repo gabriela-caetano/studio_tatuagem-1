@@ -42,7 +42,6 @@ function Calendario() {
     () => agendamentoService.getAgendamentos(periodo)
   );
 
-  console.log('Agendamentos recebidos no calendário:', agendamentos);
   const eventos = agendamentos?.agendamentos?.map(ag => {
     const start = moment(`${ag.data_agendamento} ${ag.hora_inicio}`, 'YYYY-MM-DD HH:mm').toDate();
     const end = moment(`${ag.data_agendamento} ${ag.hora_fim}`, 'YYYY-MM-DD HH:mm').toDate();

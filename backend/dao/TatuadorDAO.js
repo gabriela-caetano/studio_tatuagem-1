@@ -5,8 +5,6 @@ class TatuadorDAO {
   // Criar novo tatuador
   static async create(tatuadorData) {
     try {
-      console.log('🗄️  TatuadorDAO.create - Dados recebidos:', tatuadorData);
-      
       const query = `
         INSERT INTO tatuadores (
           nome, email, cpf, telefone, especialidades, biografia, 
@@ -28,9 +26,6 @@ class TatuadorDAO {
         tatuadorData.senha || null
       ];
 
-      console.log('📋 Query:', query);
-      console.log('📋 Values:', values);
-
       // SQLite: usar db.run para obter o último ID inserido
       const sqlite3 = require('sqlite3').verbose();
       const dbRaw = require('../config/database').db;
@@ -41,10 +36,9 @@ class TatuadorDAO {
         });
       });
       const novoTatuador = await this.findById(lastId);
-      console.log('✅ Tatuador recuperado:', novoTatuador);
       return novoTatuador;
     } catch (error) {
-      console.error('❌ Erro no TatuadorDAO.create:', error);
+      console.error('Erro no TatuadorDAO.create:', error);
       console.error('Stack:', error.stack);
       throw error;
     }

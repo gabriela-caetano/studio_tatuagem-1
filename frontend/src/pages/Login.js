@@ -18,7 +18,6 @@ function Login() {
   // Redirecionar se já estiver logado
   useEffect(() => {
     if (user) {
-      console.log('Usuário já logado, redirecionando...', user);
       navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
@@ -37,9 +36,7 @@ function Login() {
     setError('');
 
     try {
-      console.log('Tentando fazer login...');
       const response = await login(formData.email, formData.senha);
-      console.log('Login bem-sucedido:', response);
       toast.success('Login realizado com sucesso!');
       // O redirecionamento será feito pelo useEffect acima
     } catch (error) {

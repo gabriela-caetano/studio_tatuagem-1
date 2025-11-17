@@ -137,7 +137,7 @@ class AuthController {
           // const link = `http://localhost:3000/redefinir-senha/${token}`;
           // await enviarEmail(email, 'Recuperação de Senha', link);
 
-          console.log(`Token de recuperação para ${email}: ${token}`);
+          //console.log(`Token de recuperação para ${email}: ${token}`);
           res.json({ 
             message: 'Se o email existir, um link de recuperação será enviado',
             token // REMOVER EM PRODUÇÃO - só para teste

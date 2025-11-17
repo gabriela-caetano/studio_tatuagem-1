@@ -34,7 +34,8 @@ code {
 
 .sidebar {
   background-color: var(--primary-color);
-  min-height: 100vh;
+  min-height: calc(100vh - 62px);
+  height: 100%;
   color: white;
 }
 
@@ -53,7 +54,6 @@ code {
 
 .main-content {
   background-color: #f8f9fa;
-  min-height: 100vh;
   padding: 20px;
 }
 

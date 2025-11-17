@@ -64,7 +64,6 @@ function Agendamentos() {
   // Limpar storage se necessário quando a rota mudar
   useEffect(() => {
     if (shouldClear) {
-      console.log('🧹 [AGENDAMENTOS] Limpando storage');
       sessionStorage.removeItem(STORAGE_KEYS.PAGE);
       sessionStorage.removeItem(STORAGE_KEYS.FILTROS);
       setPage(1);
@@ -74,8 +73,6 @@ function Agendamentos() {
         status: '',
         tatuador_id: ''
       });
-    } else {
-      console.log('💾 [AGENDAMENTOS] Mantendo storage');
     }
   }, [location.pathname]); // Executa quando a rota muda
 
