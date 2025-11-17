@@ -28,6 +28,13 @@ router.get('/', ClienteController.findAll);
 router.get('/:id', ClienteController.findById);
 
 /**
+ * @route   PATCH /api/clientes/:id/reativar
+ * @desc    Reativar cliente inativo
+ * @access  Private
+ */
+router.patch('/:id/reativar', ClienteController.reativar);
+
+/**
  * @route   PUT /api/clientes/:id
  * @desc    Atualizar cliente
  * @access  Private

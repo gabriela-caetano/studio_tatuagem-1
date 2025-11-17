@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Alert, Row, Col, Spinner } from 'react-bootstrap';
-import { Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { AlertTriangle, CheckCircle, ArrowLeft, Edit, Save } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { toast } from 'react-toastify';
 import { agendamentoService, clienteService, tatuadorService, servicoService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { navigateAfterSave, navigateBack } from '../utils/navigationHelper';
 
 function AgendamentoForm() {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const isEditMode = !!id;
+  
+  // Detecta se está em modo visualização ou edição
+  const isView = id && !location.pathname.includes('/editar');
+  const isEditMode = id && location.pathname.includes('/editar');
 
   const [formData, setFormData] = useState({
     cliente_id: '',
@@ -122,9 +127,11 @@ function AgendamentoForm() {
       : agendamentoService.createAgendamento(data),
     {
       onSuccess: () => {
-        // Invalidar cache para forçar recarregamento da lista
-        queryClient.invalidateQueries('agendamentos');
-        navigate('/agendamentos');
+        // Invalidar todas as queries de agendamentos (incluindo paginadas)
+        queryClient.invalidateQueries(['agendamentos']);
+        toast.success(isEditMode ? 'Agendamento atualizado com sucesso!' : 'Agendamento criado com sucesso!');
+        // Navegar após salvar - limpa storage
+        navigateAfterSave(navigate, '/agendamentos');
       },
       onError: (error) => {
         console.error('❌ Erro ao salvar agendamento:', error);
@@ -227,10 +234,28 @@ function AgendamentoForm() {
 
   return (
     <div className="fade-in">
-      <h1 className="page-title">
-        <Calendar size={32} className="me-2" />
-        {isEditMode ? 'Editar Agendamento' : 'Novo Agendamento'}
-      </h1>
+      <div className="d-flex align-items-center mb-3">
+        <Button 
+          variant="outline-secondary"
+          className="me-3"
+          onClick={() => navigateBack(navigate, '/agendamentos')}
+        >
+          <ArrowLeft size={16} />
+        </Button>
+        <h1 className="page-title mb-0">
+          {isView ? 'Visualizar Agendamento' : isEditMode ? 'Editar Agendamento' : 'Novo Agendamento'}
+        </h1>
+        {isView && (
+          <Button 
+            variant="primary" 
+            className="ms-auto"
+            onClick={() => navigate(`/agendamentos/${id}/editar`)}
+          >
+            <Edit size={16} className="me-1" />
+            Editar
+          </Button>
+        )}
+      </div>
 
       <Card className="shadow-sm">
         <Card.Body>
@@ -250,7 +275,7 @@ function AgendamentoForm() {
                     value={formData.cliente_id}
                     onChange={handleChange}
                     required
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   >
                     <option value="">Selecione um cliente</option>
                     {clientesData?.data?.map(cliente => (
@@ -270,7 +295,7 @@ function AgendamentoForm() {
                     value={formData.tatuador_id}
                     onChange={handleChange}
                     required
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   >
                     <option value="">Selecione um tatuador</option>
                     {tatuadoresData?.data?.map(tatuador => (
@@ -291,7 +316,7 @@ function AgendamentoForm() {
                     name="servico_id"
                     value={formData.servico_id}
                     onChange={handleChange}
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   >
                     <option value="">Serviço Personalizado</option>
                     {servicosData?.data?.map(servico => (
@@ -312,7 +337,7 @@ function AgendamentoForm() {
                     value={formData.data}
                     onChange={handleChange}
                     required
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -324,6 +349,7 @@ function AgendamentoForm() {
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
+                    disabled={isView}
                   >
                     {isAgendamentoPastado ? (
                       // Para agendamentos passados, apenas 3 opções
@@ -357,7 +383,7 @@ function AgendamentoForm() {
                     value={formData.hora_inicio}
                     onChange={handleChange}
                     required
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -371,7 +397,7 @@ function AgendamentoForm() {
                     value={formData.hora_fim}
                     onChange={handleChange}
                     required
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -387,7 +413,7 @@ function AgendamentoForm() {
                     step="0.01"
                     min="0"
                     placeholder="0.00"
-                    disabled={isAgendamentoPastado}
+                    disabled={isView || isAgendamentoPastado}
                   />
                 </Form.Group>
               </Col>
@@ -404,7 +430,7 @@ function AgendamentoForm() {
                 placeholder="Descreva a tatuagem desejada (mínimo 5 caracteres)..."
                 required
                 minLength={5}
-                disabled={isAgendamentoPastado}
+                disabled={isView || isAgendamentoPastado}
               />
             </Form.Group>
 
@@ -417,6 +443,7 @@ function AgendamentoForm() {
                 onChange={handleChange}
                 rows={3}
                 placeholder="Informações adicionais..."
+                disabled={isView}
               />
             </Form.Group>
 
@@ -452,26 +479,29 @@ function AgendamentoForm() {
               </Alert>
             )}
 
-            <div className="d-flex gap-2">
-              <Button 
-                type="submit" 
-                variant="primary"
-                disabled={mutation.isLoading || (!isAgendamentoPastado && (conflitos.length > 0 || verificando))}
-              >
-                {verificando && !isAgendamentoPastado ? 'Verificando...' : 
-                 mutation.isLoading ? 'Salvando...' : 
-                 !isAgendamentoPastado && conflitos.length > 0 ? 'Horário Indisponível' : 
-                 isAgendamentoPastado ? 'Atualizar Status' :
-                 'Salvar'}
-              </Button>
-              <Button 
-                type="button" 
-                variant="secondary"
-                onClick={() => navigate('/agendamentos')}
-              >
-                Cancelar
-              </Button>
-            </div>
+            {!isView && (
+              <div className="d-flex justify-content-end gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline-secondary"
+                  onClick={() => navigateBack(navigate, '/agendamentos')}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="primary"
+                  disabled={mutation.isLoading || (!isAgendamentoPastado && (conflitos.length > 0 || verificando))}
+                >
+                  <Save size={16} className="me-1" />
+                  {verificando && !isAgendamentoPastado ? 'Verificando...' : 
+                   mutation.isLoading ? 'Salvando...' : 
+                   !isAgendamentoPastado && conflitos.length > 0 ? 'Horário Indisponível' : 
+                   isAgendamentoPastado ? 'Atualizar Status' :
+                   'Salvar'}
+                </Button>
+              </div>
+            )}
           </Form>
         </Card.Body>
       </Card>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   Users, 
@@ -10,19 +10,29 @@ import {
   BarChart3,
   Clock
 } from 'lucide-react';
+import { navigateFromMenu } from '../../utils/navigationHelper';
 
 function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/clientes', icon: Users, label: 'Clientes' },
-    { path: '/agendamentos', icon: Calendar, label: 'Agendamentos' },
+    { path: '/clientes', icon: Users, label: 'Clientes', useNavigationHelper: true },
+    { path: '/agendamentos', icon: Calendar, label: 'Agendamentos', useNavigationHelper: true },
     { path: '/calendario', icon: Clock, label: 'Calendário' },
     { path: '/tatuadores', icon: UserCheck, label: 'Tatuadores' },
     { path: '/servicos', icon: Settings, label: 'Serviços' },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios' },
   ];
+
+  // Usar navigation helper para páginas com persistência de filtros
+  const handleMenuClick = (e, item) => {
+    if (item.useNavigationHelper) {
+      e.preventDefault();
+      navigateFromMenu(navigate, item.path);
+    }
+  };
 
   return (
     <div className="sidebar">
@@ -40,6 +50,7 @@ function Sidebar() {
                 key={item.path}
                 as={Link}
                 to={item.path}
+                onClick={(e) => handleMenuClick(e, item)}
                 className={`d-flex align-items-center ${isActive ? 'active' : ''}`}
               >
                 <Icon size={18} className="me-2" />

@@ -109,8 +109,8 @@ class TatuadorController {
   static async getAll(req, res) {
     try {
       const { 
-        page = 1, 
-        limit = 10, 
+        page, 
+        limit, 
         search = '', 
         especialidade = '',
         incluirInativos = false,
@@ -132,8 +132,8 @@ class TatuadorController {
       }
 
       const result = await TatuadorDAO.findAll(
-        parseInt(page), 
-        parseInt(limit), 
+        page ? parseInt(page) : null, 
+        limit ? parseInt(limit) : null, 
         search,
         especialidade,
         apenasAtivos

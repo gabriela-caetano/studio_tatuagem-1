@@ -37,6 +37,12 @@ export const clienteService = {
     return response.data;
   },
 
+  // Reativar cliente
+  reativarCliente: async (id) => {
+    const response = await api.patch(`/clientes/${id}/reativar`);
+    return response.data;
+  },
+
   // Buscar agendamentos do cliente
   getAgendamentosCliente: async (id) => {
     const response = await api.get(`/clientes/${id}/agendamentos`);

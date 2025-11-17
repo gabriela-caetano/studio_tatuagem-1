@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Card, Row, Col, Badge, Spinner } from 'react-bootstrap';
 import { useQuery } from 'react-query';
-import { Calendar, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { Calendar, Users, TrendingUp, DollarSign, Home } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { agendamentoService, relatorioService } from '../services';
 
@@ -54,7 +54,7 @@ function Dashboard() {
 
   return (
     <div className="fade-in">
-      <h1 className="page-title">Dashboard <span className="text-muted text-size-small">Período de {new Date(inicioMes).toLocaleDateString('pt-BR')} até Hoje</span></h1>
+      <h1 className="page-title"><Home size={28} className="me-2" />Dashboard <span className="text-muted text-size-small">Período de {new Date(inicioMes).toLocaleDateString('pt-BR')} até Hoje</span></h1>
       <Row className="mb-4">
         <Col md={3} sm={6} className="mb-3">
           <Card className="text-center h-100 shadow-sm">

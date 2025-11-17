@@ -73,15 +73,18 @@ class ClienteController {
   // Listar todos os clientes
   static async findAll(req, res) {
     try {
-      const { page = 1, limit = 10, search = '', ativo } = req.query;
+      const page = req.query.page;
+      const limit = req.query.limit;
+      const search = req.query.search || '';
+      const ativo = req.query.ativo;
       
       // Se não for admin e não passar ativo, filtrar apenas ativos
       // Se req.usuario não existir (sem autenticação), mostrar apenas ativos
       const ativoFilter = (req.usuario && req.usuario.tipo === 'admin') ? ativo : (ativo || '1');
       
       const result = await ClienteDAO.findAll(
-        parseInt(page), 
-        parseInt(limit), 
+        page, 
+        limit, 
         search,
         ativoFilter
       );
@@ -177,6 +180,46 @@ class ClienteController {
       }
     } catch (error) {
       console.error('Erro ao excluir cliente:', error);
+      res.status(500).json({ 
+        message: 'Erro interno do servidor' 
+      });
+    }
+  }
+
+  // Reativar cliente
+  static async reativar(req, res) {
+    try {
+      const { id } = req.params;
+      
+      // Buscar cliente mesmo se estiver inativo
+      const cliente = await ClienteDAO.findByIdIncludeInactive(id);
+      if (!cliente) {
+        return res.status(404).json({ 
+          message: 'Cliente não encontrado' 
+        });
+      }
+
+      if (cliente.ativo) {
+        return res.status(400).json({ 
+          message: 'Cliente já está ativo' 
+        });
+      }
+
+      const sucesso = await ClienteDAO.reativar(id);
+      
+      if (sucesso) {
+        const clienteAtualizado = await ClienteDAO.findById(id);
+        res.json({ 
+          message: 'Cliente reativado com sucesso',
+          cliente: clienteAtualizado.toJSON()
+        });
+      } else {
+        res.status(500).json({ 
+          message: 'Erro ao reativar cliente' 
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao reativar cliente:', error);
       res.status(500).json({ 
         message: 'Erro interno do servidor' 
       });

@@ -16,7 +16,7 @@ const messages = {
   allDay: 'Dia todo',
   previous: 'Anterior',
   next: 'Próximo',
-  today: 'Hoje',
+  today: 'Atual',
   month: 'Mês',
   week: 'Semana',
   day: 'Dia',
@@ -126,7 +126,7 @@ function Calendario() {
     <div className="fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="page-title">
-          <Calendar size={32} className="me-2" />
+          <Clock size={28} className="me-2" />
           Calendário de Agendamentos
         </h1>
         <Button variant="primary" onClick={() => navigate('/agendamentos/novo')}>

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS tatuadores (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	nome TEXT NOT NULL,
 	email TEXT NOT NULL UNIQUE,
+	cpf TEXT,
 	senha TEXT NOT NULL,
 	telefone TEXT,
 	especialidades TEXT,
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS tatuadores (
 	data_cadastro DATE DEFAULT (DATE('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_tatuadores_email ON tatuadores(email);
+CREATE INDEX IF NOT EXISTS idx_tatuadores_cpf ON tatuadores(cpf);
 
 -- Tabela: servicos
 CREATE TABLE IF NOT EXISTS servicos (

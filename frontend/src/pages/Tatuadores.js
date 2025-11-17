@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link } from 'react-router-dom';
 import { 
   Card, Table, Button, Form, InputGroup, Badge, 
-  Spinner, Alert, Modal, Row, Col 
+  Spinner, Alert, Modal 
 } from 'react-bootstrap';
 import { 
-  UserPlus, Search, Edit, Trash2, UserCheck, 
-  Phone, Mail, DollarSign, CheckCircle 
+  Plus, Search, Edit, Trash2, UserCheck, 
+  Phone, Mail, DollarSign, RotateCcw, Eye 
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { tatuadorService } from '../services';
@@ -20,25 +20,22 @@ function Tatuadores() {
   const [page, setPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTatuador, setSelectedTatuador] = useState(null);
-  const [ativoFilter, setAtivoFilter] = useState(isAdmin() ? 'todos' : 'ativos'); // Admin vê todos por padrão
+  const limit = 10;
 
   // Buscar tatuadores
-  const { data, isLoading, error } = useQuery(
-    ['tatuadores', page, search, ativoFilter],
+  const { data, isLoading, error, refetch } = useQuery(
+    ['tatuadores', page, search],
     () => {
       const params = {
         page,
-        limit: 10,
-        nome: search
+        limit,
+        search
       };
       
-      // Se não for admin e tentar ver inativos, força mostrar apenas ativos
-      if (!isAdmin() && ativoFilter !== 'ativos') {
-        setAtivoFilter('ativos');
+      // Se não for admin, filtrar apenas ativos
+      if (!isAdmin()) {
+        params.ativo = '1';
       }
-      
-      if (ativoFilter === 'ativos') params.ativo = '1';
-      if (ativoFilter === 'inativos') params.ativo = '0';
       
       return tatuadorService.getTatuadores(params);
     },
@@ -50,6 +47,13 @@ function Tatuadores() {
       }
     }
   );
+
+  // Resetar página ao mudar busca
+  useEffect(() => {
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deletar tatuador (soft delete)
   const deleteMutation = useMutation(
@@ -82,19 +86,16 @@ function Tatuadores() {
     }
   );
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPage(1);
-  };
-
   const handleDelete = () => {
     if (selectedTatuador) {
       deleteMutation.mutate(selectedTatuador.id);
     }
   };
 
-  const handleReativar = (tatuador) => {
-    reativarMutation.mutate(tatuador.id);
+  const handleReativar = (id, nome) => {
+    if (window.confirm(`Tem certeza que deseja reativar o tatuador "${nome}"?`)) {
+      reativarMutation.mutate(id);
+    }
   };
 
   const formatTelefone = (telefone) => {
@@ -110,75 +111,60 @@ function Tatuadores() {
     }).format(preco);
   };
 
+  if (isLoading) {
+    return (
+      <div className="loading-spinner">
+        <Spinner animation="border" variant="primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="page-title">
-          <UserCheck className="me-2" />
+        <h1 className="page-title mb-0">
+          <UserCheck size={28} className="me-2" />
           Tatuadores
         </h1>
         <Link to="/tatuadores/novo">
           <Button variant="primary">
-            <UserPlus size={20} className="me-2" />
+            <Plus size={16} className="me-1" />
             Novo Tatuador
           </Button>
         </Link>
       </div>
 
-      <Card className="mb-4">
-        <Card.Body>
-          <Form onSubmit={handleSearch}>
-            <Row className="g-3">
-              <Col md={6}>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <Search size={18} />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="text"
-                    placeholder="Buscar por nome..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </InputGroup>
-              </Col>
-              <Col md={3}>
-                <Form.Select 
-                  value={ativoFilter}
-                  onChange={(e) => {
-                    setAtivoFilter(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="ativos">Apenas Ativos</option>
-                  <option value="inativos">Apenas Inativos</option>
-                </Form.Select>
-              </Col>
-              <Col md={3}>
-                <Button type="submit" variant="primary" className="w-100">
-                  Buscar
-                </Button>
-              </Col>
-            </Row>
-          </Form>
-        </Card.Body>
-      </Card>
-
-      {error && (
-        <Alert variant="danger">
-          Erro ao carregar tatuadores. Tente novamente mais tarde.
-        </Alert>
-      )}
-
       <Card>
-        <Card.Body>
-          {isLoading ? (
-            <div className="text-center py-5">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2">Carregando tatuadores...</p>
-            </div>
-          ) : data?.data?.length === 0 ? (
+        <Card.Header>
+          <InputGroup>
+            <Form.Control
+              type="text"
+              placeholder="Buscar por nome, email ou telefone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button variant="outline-primary">
+              <Search size={16} />
+            </Button>
+            {search && (
+              <Button 
+                variant="outline-secondary" 
+                onClick={() => setSearch('')}
+              >
+                Limpar
+              </Button>
+            )}
+          </InputGroup>
+        </Card.Header>
+
+        <Card.Body className="p-0">
+          {error && (
+            <Alert variant="danger" className="m-3">
+              Erro ao carregar tatuadores. Tente novamente mais tarde.
+            </Alert>
+          )}
+
+          {data?.data?.length === 0 ? (
             <div className="text-center py-5">
               <UserCheck size={64} className="text-muted mb-3" />
               <h5 className="text-muted">Nenhum tatuador encontrado</h5>
@@ -189,15 +175,16 @@ function Tatuadores() {
           ) : (
             <>
               <div className="table-responsive">
-                <Table hover>
+                <Table striped hover className="mb-0">
                   <thead>
                     <tr>
                       <th>Nome</th>
-                      <th>Contato</th>
+                      <th>Email</th>
+                      <th>Telefone</th>
                       <th>Especialidades</th>
                       <th>Valor/Hora</th>
-                      <th className="text-center">Status</th>
-                      <th className="text-center">Ações</th>
+                      <th>Status</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -206,43 +193,36 @@ function Tatuadores() {
                         <td>
                           <strong>{tatuador.nome}</strong>
                         </td>
-                        <td>
-                          <div className="small">
-                            <div>
-                              <Phone size={14} className="me-1" />
-                              {formatTelefone(tatuador.telefone)}
-                            </div>
-                            <div>
-                              <Mail size={14} className="me-1" />
-                              {tatuador.email}
-                            </div>
-                          </div>
-                        </td>
+                        <td>{tatuador.email}</td>
+                        <td>{formatTelefone(tatuador.telefone)}</td>
                         <td>
                           <span className="small text-muted">
                             {tatuador.especialidades || '-'}
                           </span>
                         </td>
                         <td>
-                          <DollarSign size={14} className="me-1" />
                           {formatPreco(tatuador.valor_hora)}
                         </td>
-                        <td className="text-center">
-                          <Badge bg={tatuador.ativo ? 'success' : 'danger'}>
+                        <td>
+                          <Badge bg={tatuador.ativo ? 'success' : 'secondary'}>
                             {tatuador.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </td>
-                        <td className="text-center">
-                          <div className="btn-group" role="group">
-                            <Link
-                              to={`/tatuadores/${tatuador.id}/editar`}
-                              className="btn btn-sm btn-outline-primary"
-                              title="Editar"
-                            >
-                              <Edit size={16} />
-                            </Link>
-                            
-                            {tatuador.ativo ? (
+                        <td>
+                          {tatuador.ativo ? (
+                            <div className="d-flex gap-1">
+                              <Link
+                                to={`/tatuadores/${tatuador.id}`}
+                                className="btn btn-sm btn-outline-info"
+                              >
+                                <Eye size={14} />
+                              </Link>
+                              <Link
+                                to={`/tatuadores/${tatuador.id}/editar`}
+                                className="btn btn-sm btn-outline-warning"
+                              >
+                                <Edit size={14} />
+                              </Link>
                               <Button
                                 size="sm"
                                 variant="outline-danger"
@@ -250,22 +230,21 @@ function Tatuadores() {
                                   setSelectedTatuador(tatuador);
                                   setShowDeleteModal(true);
                                 }}
-                                title="Desativar"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                               </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline-success"
-                                onClick={() => handleReativar(tatuador)}
-                                disabled={reativarMutation.isLoading}
-                                title="Reativar"
-                              >
-                                <CheckCircle size={16} />
-                              </Button>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              onClick={() => handleReativar(tatuador.id, tatuador.nome)}
+                              title="Reativar tatuador"
+                            >
+                              <RotateCcw size={14} className="me-1" />
+                              Reativar
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -274,30 +253,35 @@ function Tatuadores() {
               </div>
 
               {/* Paginação */}
-              {data?.pagination && data.pagination.totalPages > 1 && (
-                <div className="d-flex justify-content-between align-items-center mt-3">
-                  <span className="text-muted">
-                    Mostrando {data.data?.length || 0} de {data.pagination.total || 0} tatuadores
-                  </span>
-                  <div className="btn-group">
+              {data?.pagination && (
+                <div className="d-flex justify-content-between align-items-center p-3">
+                  <div className="text-muted">
+                    Mostrando {((data.pagination.page - 1) * limit) + 1} a{' '}
+                    {Math.min(
+                      data.pagination.page * limit,
+                      data.pagination.total
+                    )}{' '}
+                    de {data.pagination.total} tatuadores
+                  </div>
+                  <div className="d-flex gap-1">
                     <Button
-                      size="sm"
                       variant="outline-primary"
-                      disabled={page === 1}
+                      size="sm"
+                      disabled={page <= 1}
                       onClick={() => setPage(page - 1)}
                     >
                       Anterior
                     </Button>
-                    <Button size="sm" variant="outline-primary" disabled>
+                    <span className="align-self-center mx-2 text-muted">
                       Página {page} de {data.pagination.totalPages}
-                    </Button>
+                    </span>
                     <Button
-                      size="sm"
                       variant="outline-primary"
-                      disabled={page === data.pagination.totalPages}
+                      size="sm"
+                      disabled={page >= data.pagination.totalPages}
                       onClick={() => setPage(page + 1)}
                     >
-                      Próxima
+                      Próximo
                     </Button>
                   </div>
                 </div>

@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card, Form, Button, Row, Col, Alert } from 'react-bootstrap';
 import { useQueryClient } from 'react-query';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, Edit } from 'lucide-react';
 import { tatuadorService } from '../services';
 import { toast } from 'react-toastify';
 
 function TatuadorForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const isEdit = !!id;
+  
+  // Detecta se está em modo visualização ou edição
+  const isView = id && !location.pathname.includes('/editar');
+  const isEdit = id && location.pathname.includes('/editar');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,28 +38,30 @@ function TatuadorForm() {
   });
 
   useEffect(() => {
-    if (isEdit) {
+    if (id && (isEdit || isView)) {
       loadTatuador();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isEdit]);
+  }, [id, isEdit, isView]);
 
   const loadTatuador = async () => {
     try {
       setLoading(true);
       const response = await tatuadorService.getTatuadorById(id);
-      if (!response || !response.tatuador) {
+      const tatuador = response?.tatuador || response?.data;
+      
+      if (!tatuador) {
         setError('Tatuador não encontrado');
         toast.error('Tatuador não encontrado');
         return;
       }
       // Parse disponibilidade se for string
-      const disponibilidade = typeof response.tatuador.disponibilidade === 'string'
-        ? JSON.parse(response.tatuador.disponibilidade)
-        : response.tatuador.disponibilidade;
+      const disponibilidade = typeof tatuador.disponibilidade === 'string'
+        ? JSON.parse(tatuador.disponibilidade)
+        : tatuador.disponibilidade;
 
       setFormData({
-        ...response.tatuador,
+        ...tatuador,
         disponibilidade: disponibilidade || formData.disponibilidade,
       });
     } catch (error) {
@@ -164,14 +170,27 @@ function TatuadorForm() {
 
   return (
     <div className="fade-in">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="page-title">
-          {isEdit ? 'Editar Tatuador' : 'Novo Tatuador'}
-        </h1>
-        <Button variant="outline-secondary" onClick={() => navigate('/tatuadores')}>
-          <ArrowLeft size={18} className="me-2" />
-          Voltar
+      <div className="d-flex align-items-center mb-4">
+        <Button 
+          variant="outline-secondary"
+          className="me-3"
+          onClick={() => navigate('/tatuadores')}
+        >
+          <ArrowLeft size={16} />
         </Button>
+        <h1 className="page-title mb-0">
+          {isView ? 'Visualizar Tatuador' : isEdit ? 'Editar Tatuador' : 'Novo Tatuador'}
+        </h1>
+        {isView && (
+          <Button 
+            variant="primary" 
+            className="ms-auto"
+            onClick={() => navigate(`/tatuadores/${id}/editar`)}
+          >
+            <Edit size={16} className="me-1" />
+            Editar
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -180,12 +199,9 @@ function TatuadorForm() {
         </Alert>
       )}
 
-      <Form onSubmit={handleSubmit}>
-        <Card className="mb-3">
-          <Card.Header>
-            <h5 className="mb-0">Dados Pessoais</h5>
-          </Card.Header>
-          <Card.Body>
+      <Card className="mb-3">
+        <Card.Body>
+          <Form onSubmit={handleSubmit}>
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -196,7 +212,7 @@ function TatuadorForm() {
                     value={formData.nome}
                     onChange={handleChange}
                     required
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
@@ -209,7 +225,7 @@ function TatuadorForm() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
@@ -226,7 +242,7 @@ function TatuadorForm() {
                     onChange={handleChange}
                     placeholder="000.000.000-00"
                     required
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
@@ -240,7 +256,7 @@ function TatuadorForm() {
                     onChange={handleChange}
                     placeholder="(00) 00000-0000"
                     required
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
@@ -255,19 +271,12 @@ function TatuadorForm() {
                     step="0.01"
                     min="0"
                     required
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
             </Row>
-          </Card.Body>
-        </Card>
-
-        <Card className="mb-3">
-          <Card.Header>
-            <h5 className="mb-0">Informações Profissionais</h5>
-          </Card.Header>
-          <Card.Body>
+          
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -279,7 +288,7 @@ function TatuadorForm() {
                     onChange={handleChange}
                     rows={3}
                     placeholder="Ex: Realismo, Aquarela, Tribal..."
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
@@ -292,29 +301,23 @@ function TatuadorForm() {
                     value={formData.portfolio_url}
                     onChange={handleChange}
                     placeholder="https://..."
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Form.Group>
               </Col>
             </Row>
-          </Card.Body>
-        </Card>
-
-        <Card className="mb-3">
-          <Card.Header>
+          
             <h5 className="mb-0">Disponibilidade Semanal</h5>
-          </Card.Header>
-          <Card.Body>
             {diasSemana.map((dia) => (
               <Row key={dia.key} className="mb-3 align-items-center">
-                <Col md={3}>
+                <Col md={4}>
                   <Form.Check
                     type="checkbox"
                     id={`disponibilidade-${dia.key}`}
                     label={dia.label}
                     checked={formData.disponibilidade[dia.key].ativo}
                     onChange={() => handleDisponibilidadeChange(dia.key, 'ativo')}
-                    disabled={loading}
+                    disabled={isView || loading}
                   />
                 </Col>
                 <Col md={4}>
@@ -326,7 +329,7 @@ function TatuadorForm() {
                       onChange={(e) =>
                         handleDisponibilidadeChange(dia.key, 'inicio', e.target.value)
                       }
-                      disabled={!formData.disponibilidade[dia.key].ativo || loading}
+                      disabled={isView || !formData.disponibilidade[dia.key].ativo || loading}
                     />
                   </Form.Group>
                 </Col>
@@ -339,29 +342,31 @@ function TatuadorForm() {
                       onChange={(e) =>
                         handleDisponibilidadeChange(dia.key, 'fim', e.target.value)
                       }
-                      disabled={!formData.disponibilidade[dia.key].ativo || loading}
+                      disabled={isView || !formData.disponibilidade[dia.key].ativo || loading}
                     />
                   </Form.Group>
                 </Col>
               </Row>
             ))}
-          </Card.Body>
-        </Card>
 
-        <div className="d-flex justify-content-end gap-2">
-          <Button
-            variant="outline-secondary"
-            onClick={() => navigate('/tatuadores')}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            <Save size={18} className="me-2" />
-            {loading ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </div>
-      </Form>
+            {!isView && (
+              <div className="d-flex justify-content-end gap-2">
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => navigate('/tatuadores')}
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary" disabled={loading}>
+                  <Save size={18} className="me-2" />
+                  {loading ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </div>
+            )}
+          </Form>
+        </Card.Body>
+      </Card>
     </div>
   );
 }

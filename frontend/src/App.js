@@ -69,12 +69,14 @@ function AppContent() {
                 
                 <Route path="/agendamentos" element={<PrivateRoute><Agendamentos /></PrivateRoute>} />
                 <Route path="/agendamentos/novo" element={<PrivateRoute><AgendamentoForm /></PrivateRoute>} />
+                <Route path="/agendamentos/:id" element={<PrivateRoute><AgendamentoForm /></PrivateRoute>} />
                 <Route path="/agendamentos/:id/editar" element={<PrivateRoute><AgendamentoForm /></PrivateRoute>} />
                 
                 <Route path="/calendario" element={<PrivateRoute><Calendario /></PrivateRoute>} />
                 
                 <Route path="/tatuadores" element={<PrivateRoute><Tatuadores /></PrivateRoute>} />
                 <Route path="/tatuadores/novo" element={<PrivateRoute><TatuadorForm /></PrivateRoute>} />
+                <Route path="/tatuadores/:id" element={<PrivateRoute><TatuadorForm /></PrivateRoute>} />
                 <Route path="/tatuadores/:id/editar" element={<PrivateRoute><TatuadorForm /></PrivateRoute>} />
                 
                 <Route path="/servicos" element={<PrivateRoute><Servicos /></PrivateRoute>} />

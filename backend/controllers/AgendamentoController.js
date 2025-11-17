@@ -90,10 +90,14 @@ class AgendamentoController {
     }
   }
 
-  // Listar agendamentos com filtros
+  // Listar agendamentos com filtros e paginação
   static async findAll(req, res) {
     try {
       const filters = {};
+      
+      // Adicionar paginação apenas se fornecida
+      if (req.query.page) filters.page = req.query.page;
+      if (req.query.limit) filters.limit = req.query.limit;
       
       // Se for tatuador, filtrar apenas seus agendamentos
       if (req.usuario && req.usuario.tipo === 'tatuador') {
@@ -108,23 +112,19 @@ class AgendamentoController {
       }
       if (req.query.status) filters.status = req.query.status;
       if (req.query.data_agendamento) filters.data_agendamento = req.query.data_agendamento;
-      if (req.query.data_inicio && req.query.data_fim) {
-        filters.data_inicio = req.query.data_inicio;
-        filters.data_fim = req.query.data_fim;
+      // Aceitar tanto snake_case quanto camelCase para compatibilidade
+      if ((req.query.data_inicio && req.query.data_fim) || (req.query.dataInicio && req.query.dataFim)) {
+        filters.data_inicio = req.query.data_inicio || req.query.dataInicio;
+        filters.data_fim = req.query.data_fim || req.query.dataFim;
       }
       
-      const agendamentos = await AgendamentoDAO.findAll(filters);
-      console.log('📋 Agendamentos encontrados:', agendamentos.length);
+      const result = await AgendamentoDAO.findAll(filters);
+      console.log('📋 Agendamentos encontrados:', result.data.length);
       
       res.json({
         message: 'Agendamentos encontrados',
-        agendamentos: Array.isArray(agendamentos) ? agendamentos : [],
-        pagination: {
-          total: Array.isArray(agendamentos) ? agendamentos.length : 0,
-          page: 1,
-          limit: Array.isArray(agendamentos) ? agendamentos.length : 0,
-          totalPages: 1
-        }
+        agendamentos: result.data,
+        pagination: result.pagination
       });
     } catch (error) {
       console.error('Erro ao listar agendamentos:', error);

@@ -49,6 +49,20 @@ class ClienteDAO {
     }
   }
 
+  // Buscar cliente por ID incluindo inativos
+  static async findByIdIncludeInactive(id) {
+    try {
+      const query = 'SELECT * FROM clientes WHERE id = ?';
+      const rows = await db.query(query, [id]);
+      if (!rows || rows.length === 0) {
+        return null;
+      }
+      return new Cliente(rows[0]);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Buscar cliente por email
   static async findByEmail(email) {
     try {
@@ -82,13 +96,8 @@ class ClienteDAO {
   }
 
   // Listar todos os clientes
-  static async findAll(page = 1, limit = 10, search = '', ativo = null) {
+  static async findAll(page = null, limit = null, search = '', ativo = null) {
     try {
-      // Converter para números para evitar erro no MySQL
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
-      const offset = (pageNum - 1) * limitNum;
-      
       // Se ativo for especificado, filtrar. Se não, mostrar todos
       let whereClause = ativo !== null ? `WHERE ativo = ${ativo === '1' || ativo === 1 ? 1 : 0}` : 'WHERE 1=1';
       let query = `SELECT * FROM clientes ${whereClause}`;
@@ -102,24 +111,45 @@ class ClienteDAO {
         queryParams.push(searchParam, searchParam, searchParam);
       }
       
-      // MySQL 9.x tem problemas com prepared statements em LIMIT
-      // Usar concatenação direta (seguro pois já convertemos para int)
-      query += ` ORDER BY nome ASC LIMIT ${offset}, ${limitNum}`;
-
-      const rows = await db.query(query, queryParams);
-      const countResult = await db.query(countQuery, search ? queryParams.slice(0, 3) : []);
-      const clientes = rows ? rows.map(row => new Cliente(row)) : [];
-      const total = countResult[0]?.total || 0;
+      query += ' ORDER BY nome ASC';
       
-      return {
-        clientes,
-        pagination: {
-          currentPage: pageNum,
-          totalPages: Math.ceil(total / limitNum),
-          totalItems: total,
-          itemsPerPage: limitNum
-        }
-      };
+      // Verificar se deve usar paginação
+      const usePagination = page !== null && page !== undefined && limit !== null && limit !== undefined;
+      
+      if (usePagination) {
+        // Converter para números para evitar erro no MySQL
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+        
+        // MySQL 9.x tem problemas com prepared statements em LIMIT
+        // Usar concatenação direta (seguro pois já convertemos para int)
+        query += ` LIMIT ${offset}, ${limitNum}`;
+
+        const rows = await db.query(query, queryParams);
+        const countResult = await db.query(countQuery, search ? queryParams.slice(0, 3) : []);
+        const clientes = rows ? rows.map(row => new Cliente(row)) : [];
+        const total = countResult[0]?.total || 0;
+        
+        return {
+          clientes,
+          pagination: {
+            currentPage: pageNum,
+            totalPages: Math.ceil(total / limitNum),
+            totalItems: total,
+            itemsPerPage: limitNum
+          }
+        };
+      } else {
+        // Retornar todos os dados sem paginação
+        const rows = await db.query(query, queryParams);
+        const clientes = rows ? rows.map(row => new Cliente(row)) : [];
+        
+        return {
+          clientes,
+          pagination: null
+        };
+      }
     } catch (error) {
       throw error;
     }
@@ -161,6 +191,18 @@ class ClienteDAO {
   static async delete(id) {
     try {
       const query = 'UPDATE clientes SET ativo = 0 WHERE id = ?';
+      await db.query(query, [id]);
+      
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Reativar cliente
+  static async reativar(id) {
+    try {
+      const query = 'UPDATE clientes SET ativo = 1 WHERE id = ?';
       await db.query(query, [id]);
       
       return true;

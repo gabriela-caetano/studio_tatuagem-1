@@ -9,14 +9,15 @@ class TatuadorDAO {
       
       const query = `
         INSERT INTO tatuadores (
-          nome, email, telefone, especialidades, biografia, 
+          nome, email, cpf, telefone, especialidades, biografia, 
           portfolio_url, instagram, valor_hora, disponibilidade, senha
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const values = [
         tatuadorData.nome || null,
         tatuadorData.email || null,
+        tatuadorData.cpf || null,
         tatuadorData.telefone || null,
         tatuadorData.especialidades || null,
         tatuadorData.biografia || null,
@@ -95,13 +96,8 @@ class TatuadorDAO {
   }
 
   // Listar todos os tatuadores
-  static async findAll(page = 1, limit = 10, search = '', especialidade = '', apenasAtivos = true) {
+  static async findAll(page = null, limit = null, search = '', especialidade = '', apenasAtivos = true) {
     try {
-      // Converter para inteiros para evitar erro no MySQL
-      const pageNum = parseInt(page) || 1;
-      const limitNum = parseInt(limit) || 10;
-      const offset = (pageNum - 1) * limitNum;
-      
       let query = 'SELECT * FROM tatuadores WHERE 1=1';
       let countQuery = 'SELECT COUNT(*) as total FROM tatuadores WHERE 1=1';
       const queryParams = [];
@@ -139,15 +135,26 @@ class TatuadorDAO {
         countParams.push(espParam);
       }
       
-      query += ' ORDER BY nome ASC LIMIT ? OFFSET ?';
-      queryParams.push(limitNum, offset);
+      query += ' ORDER BY nome ASC';
+      
+      // Verificar se deve usar paginação
+      const usePagination = page !== null && page !== undefined && limit !== null && limit !== undefined;
+      
+      if (usePagination) {
+        // Converter para inteiros para evitar erro no MySQL
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 10;
+        const offset = (pageNum - 1) * limitNum;
+        
+        query += ' LIMIT ? OFFSET ?';
+        queryParams.push(limitNum, offset);
 
-      const rows = await db.query(query, queryParams);
-      const countResult = await db.query(countQuery, countParams);
-      const tatuadores = Array.isArray(rows) ? rows.map(row => {
-        if (row.disponibilidade) {
-          try {
-            row.disponibilidade = JSON.parse(row.disponibilidade);
+        const rows = await db.query(query, queryParams);
+        const countResult = await db.query(countQuery, countParams);
+        const tatuadores = Array.isArray(rows) ? rows.map(row => {
+          if (row.disponibilidade) {
+            try {
+              row.disponibilidade = JSON.parse(row.disponibilidade);
           } catch (e) {
             row.disponibilidade = {};
           }
@@ -164,6 +171,25 @@ class TatuadorDAO {
           totalPages: Math.ceil(countResult[0].total / limitNum)
         }
       };
+      } else {
+        // Retornar todos os dados sem paginação
+        const rows = await db.query(query, queryParams);
+        const tatuadores = Array.isArray(rows) ? rows.map(row => {
+          if (row.disponibilidade) {
+            try {
+              row.disponibilidade = JSON.parse(row.disponibilidade);
+            } catch (e) {
+              row.disponibilidade = {};
+            }
+          }
+          return new Tatuador(row);
+        }) : [];
+
+        return {
+          data: tatuadores,
+          pagination: null
+        };
+      }
     } catch (error) {
       throw error;
     }
@@ -202,6 +228,10 @@ class TatuadorDAO {
       if (tatuadorData.email !== undefined) {
         updates.push('email = ?');
         values.push(tatuadorData.email);
+      }
+      if (tatuadorData.cpf !== undefined) {
+        updates.push('cpf = ?');
+        values.push(tatuadorData.cpf);
       }
       if (tatuadorData.telefone !== undefined) {
         updates.push('telefone = ?');

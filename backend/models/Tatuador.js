@@ -4,6 +4,7 @@ class Tatuador {
     this.nome = data.nome;
     this.email = data.email;
     this.telefone = data.telefone;
+    this.cpf = data.cpf;
     this.especialidades = data.especialidades;
     this.biografia = data.biografia;
     this.portfolio_url = data.portfolio_url;
@@ -50,6 +51,7 @@ class Tatuador {
       nome: this.nome,
       email: this.email,
       telefone: this.telefone,
+      cpf: this.cpf,
       especialidades: this.especialidades,
       biografia: this.biografia,
       portfolio_url: this.portfolio_url,

@@ -66,9 +66,20 @@ class AgendamentoDAO {
     }
   }
 
-  // Listar agendamentos com filtros
+  // Listar agendamentos com filtros e paginação
   static async findAll(filters = {}) {
     try {
+      // Query para contar total
+      let countQuery = `
+        SELECT COUNT(*) as total
+        FROM agendamentos a
+        LEFT JOIN clientes c ON a.cliente_id = c.id
+        LEFT JOIN tatuadores t ON a.tatuador_id = t.id
+        LEFT JOIN servicos s ON a.servico_id = s.id
+        WHERE 1=1
+      `;
+      
+      // Query principal
       let query = `
         SELECT a.*, 
                c.nome as cliente_nome, c.telefone as cliente_telefone,
@@ -85,31 +96,70 @@ class AgendamentoDAO {
       
       if (filters.cliente_id) {
         query += ' AND a.cliente_id = ?';
+        countQuery += ' AND a.cliente_id = ?';
         queryParams.push(filters.cliente_id);
       }
       
       if (filters.tatuador_id) {
         query += ' AND a.tatuador_id = ?';
+        countQuery += ' AND a.tatuador_id = ?';
         queryParams.push(filters.tatuador_id);
       }
       
       if (filters.status) {
         query += ' AND a.status = ?';
+        countQuery += ' AND a.status = ?';
         queryParams.push(filters.status);
       }
       
       if (filters.data_inicio && filters.data_fim) {
         query += ' AND a.data_agendamento BETWEEN ? AND ?';
+        countQuery += ' AND a.data_agendamento BETWEEN ? AND ?';
         queryParams.push(filters.data_inicio, filters.data_fim);
       } else if (filters.data_agendamento) {
         query += ' AND DATE(a.data_agendamento) = ?';
+        countQuery += ' AND DATE(a.data_agendamento) = ?';
         queryParams.push(filters.data_agendamento);
       }
       
-      query += ' ORDER BY a.data_agendamento ASC, a.hora_inicio ASC';
+      // Buscar total de registros
+      const countRows = await db.query(countQuery, queryParams);
+      const total = countRows[0]?.total || 0;
       
-      const rows = await db.query(query, queryParams);
-      return Array.isArray(rows) ? rows : [];
+      query += ' ORDER BY a.data_agendamento DESC, a.hora_inicio DESC';
+      
+      // Verificar se deve usar paginação
+      const usePagination = filters.page !== undefined || filters.limit !== undefined;
+      
+      if (usePagination) {
+        // Adicionar paginação
+        const page = parseInt(filters.page) || 1;
+        const limit = parseInt(filters.limit) || 10;
+        const offset = (page - 1) * limit;
+        
+        query += ' LIMIT ? OFFSET ?';
+        queryParams.push(limit, offset);
+        
+        const rows = await db.query(query, queryParams);
+        
+        return {
+          data: Array.isArray(rows) ? rows : [],
+          pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            totalItems: total,
+            itemsPerPage: limit
+          }
+        };
+      } else {
+        // Retornar todos os dados sem paginação
+        const rows = await db.query(query, queryParams);
+        
+        return {
+          data: Array.isArray(rows) ? rows : [],
+          pagination: null
+        };
+      }
     } catch (error) {
       throw error;
     }

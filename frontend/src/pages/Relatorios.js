@@ -8,7 +8,6 @@ import {
   Download, 
   Calendar, 
   DollarSign,
-  Users,
   TrendingUp,
   FileText
 } from 'lucide-react';

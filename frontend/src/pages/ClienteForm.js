@@ -6,6 +6,7 @@ import { useQueryClient } from 'react-query';
 import { ArrowLeft, Save, Edit } from 'lucide-react';
 import { clienteService } from '../services';
 import { toast } from 'react-toastify';
+import { navigateAfterSave, navigateBack, navigateToEdit } from '../utils/navigationHelper';
 
 function ClienteForm() {
   const { id } = useParams();
@@ -30,15 +31,14 @@ function ClienteForm() {
       if (isEdit) {
         await clienteService.updateCliente(id, data);
         toast.success('Cliente atualizado com sucesso');
-        // Invalidar cache para forçar recarregamento da lista
         queryClient.invalidateQueries('clientes');
       } else {
         await clienteService.createCliente(data);
         toast.success('Cliente cadastrado com sucesso');
-        // Invalidar cache para forçar recarregamento da lista
         queryClient.invalidateQueries('clientes');
       }
-      navigate('/clientes');
+      // Navegar após salvar - limpa storage
+      navigateAfterSave(navigate, '/clientes');
     } catch (error) {
       const errorData = error.response?.data;
       
@@ -90,7 +90,11 @@ function ClienteForm() {
   return (
     <div className="fade-in">
       <div className="d-flex align-items-center mb-4">
-        <Button as={Link} to="/clientes" variant="outline-secondary" className="me-3">
+        <Button 
+          variant="outline-secondary" 
+          className="me-3"
+          onClick={() => navigateBack(navigate, '/clientes')}
+        >
           <ArrowLeft size={16} />
         </Button>
         <h1 className="page-title mb-0">
@@ -98,10 +102,9 @@ function ClienteForm() {
         </h1>
         {isView && (
           <Button 
-            as={Link} 
-            to={`/clientes/${id}/editar`} 
             variant="primary" 
             className="ms-auto"
+            onClick={() => navigateToEdit(navigate, `/clientes/${id}/editar`)}
           >
             <Edit size={16} className="me-1" />
             Editar

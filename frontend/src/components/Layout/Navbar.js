@@ -2,7 +2,8 @@ import React from 'react';
 import { Navbar as BootstrapNavbar, Nav, NavDropdown } from 'react-bootstrap';
 import { Users, Calendar, User, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { navigateFromMenu } from '../../utils/navigationHelper';
 
 function Navbar() {
   const { user, logout } = useAuth();
@@ -15,7 +16,7 @@ function Navbar() {
 
   return (
     <BootstrapNavbar bg="dark" variant="dark" expand="lg" className="px-3">
-      <BootstrapNavbar.Brand href="/" className="d-flex align-items-center">
+      <BootstrapNavbar.Brand as={Link} to="/" className="d-flex align-items-center">
         <User className="me-2" size={24} />
         Studio Tatuagem
       </BootstrapNavbar.Brand>
@@ -23,11 +24,25 @@ function Navbar() {
       <BootstrapNavbar.Toggle aria-controls="basic-navbar-nav" />
       <BootstrapNavbar.Collapse id="basic-navbar-nav">
         <Nav className="ms-auto">
-          <Nav.Link href="/agendamentos" className="d-flex align-items-center">
+          <Nav.Link 
+            onClick={(e) => {
+              e.preventDefault();
+              navigateFromMenu(navigate, '/agendamentos');
+            }}
+            className="d-flex align-items-center"
+            style={{ cursor: 'pointer' }}
+          >
             <Calendar className="me-1" size={16} />
             Agendamentos
           </Nav.Link>
-          <Nav.Link href="/clientes" className="d-flex align-items-center">
+          <Nav.Link 
+            onClick={(e) => {
+              e.preventDefault();
+              navigateFromMenu(navigate, '/clientes');
+            }}
+            className="d-flex align-items-center"
+            style={{ cursor: 'pointer' }}
+          >
             <Users className="me-1" size={16} />
             Clientes
           </Nav.Link>
