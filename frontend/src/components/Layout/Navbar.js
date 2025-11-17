@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navbar as BootstrapNavbar, Nav, NavDropdown } from 'react-bootstrap';
-import { Users, Calendar, User, LogOut, UserCircle } from 'lucide-react';
+import { Users, Clock, User, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { navigateFromMenu } from '../../utils/navigationHelper';
@@ -32,7 +32,7 @@ function Navbar() {
             className="d-flex align-items-center"
             style={{ cursor: 'pointer' }}
           >
-            <Calendar className="me-1" size={16} />
+            <Clock className="me-1" size={18} />
             Agendamentos
           </Nav.Link>
           <Nav.Link 

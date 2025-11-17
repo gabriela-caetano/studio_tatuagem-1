@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { useMutation } from 'react-query';
+import { toast } from 'react-toastify';
 import { authService } from '../services';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -13,7 +14,7 @@ function RedefinirSenha() {
 
   const mutation = useMutation(authService.redefinirSenha, {
     onSuccess: () => {
-      alert('Senha redefinida com sucesso!');
+      toast.success('Senha redefinida com sucesso!');
       navigate('/login');
     },
     onError: (error) => {

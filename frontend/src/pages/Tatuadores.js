@@ -19,6 +19,7 @@ function Tatuadores() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReativarModal, setShowReativarModal] = useState(false);
   const [selectedTatuador, setSelectedTatuador] = useState(null);
   const limit = 10;
 
@@ -92,9 +93,15 @@ function Tatuadores() {
     }
   };
 
-  const handleReativar = (id, nome) => {
-    if (window.confirm(`Tem certeza que deseja reativar o tatuador "${nome}"?`)) {
-      reativarMutation.mutate(id);
+  const handleReativar = (tatuador) => {
+    setSelectedTatuador(tatuador);
+    setShowReativarModal(true);
+  };
+
+  const confirmReativar = () => {
+    if (selectedTatuador) {
+      reativarMutation.mutate(selectedTatuador.id);
+      setShowReativarModal(false);
     }
   };
 
@@ -184,7 +191,7 @@ function Tatuadores() {
                       <th>Especialidades</th>
                       <th>Valor/Hora</th>
                       <th>Status</th>
-                      <th>Ações</th>
+                      <th style={{width: '140px'}}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -238,7 +245,7 @@ function Tatuadores() {
                             <Button
                               variant="outline-success"
                               size="sm"
-                              onClick={() => handleReativar(tatuador.id, tatuador.nome)}
+                              onClick={() => handleReativar(tatuador)}
                               title="Reativar tatuador"
                             >
                               <RotateCcw size={14} className="me-1" />
@@ -318,6 +325,30 @@ function Tatuadores() {
             disabled={deleteMutation.isLoading}
           >
             {deleteMutation.isLoading ? 'Desativando...' : 'Desativar'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Confirmação de Reativação */}
+      <Modal show={showReativarModal} onHide={() => setShowReativarModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Reativação</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Tem certeza que deseja reativar o tatuador <strong>{selectedTatuador?.nome}</strong>?
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReativarModal(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={confirmReativar}
+            disabled={reativarMutation.isLoading}
+          >
+            {reativarMutation.isLoading ? 'Reativando...' : 'Reativar'}
           </Button>
         </Modal.Footer>
       </Modal>

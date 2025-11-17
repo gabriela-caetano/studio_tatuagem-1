@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Card, Table, Button, Badge, Form, Row, Col, Alert } from 'react-bootstrap';
+import { Card, Table, Button, Badge, Form, Row, Col, Alert, Modal } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { agendamentoService } from '../services';
-import { Calendar, Plus, Edit, Trash2, Filter, Eye } from 'lucide-react';
+import { Clock, Plus, Edit, Trash2, Filter, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { shouldClearStorage, navigateToEdit, navigateToNew } from '../utils/navigationHelper';
@@ -58,6 +58,8 @@ function Agendamentos() {
   const [page, setPage] = useState(getInitialPage);
   const limit = 10;
   const [filtros, setFiltros] = useState(getInitialFiltros);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [agendamentoToDelete, setAgendamentoToDelete] = useState(null);
 
   // Limpar storage se necessário quando a rota mudar
   useEffect(() => {
@@ -118,9 +120,15 @@ function Agendamentos() {
     }
   );
 
-  const handleDelete = (id) => {
-    if (window.confirm('Deseja realmente excluir este agendamento?')) {
-      deleteMutation.mutate(id);
+  const handleDelete = (agendamento) => {
+    setAgendamentoToDelete(agendamento);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (agendamentoToDelete) {
+      deleteMutation.mutate(agendamentoToDelete.id);
+      setShowDeleteModal(false);
     }
   };
 
@@ -151,8 +159,8 @@ function Agendamentos() {
   return (
     <div className="fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="page-title">
-          <Calendar size={32} className="me-2" />
+        <h1 className="page-title mb-0">
+          <Clock size={28} className="me-2" />
           Agendamentos
         </h1>
         <Button
@@ -251,7 +259,7 @@ function Agendamentos() {
             </Alert>
           ) : agendamentos.length === 0 ? (
             <div className="text-center py-5">
-              <Calendar size={48} className="text-muted mb-3" />
+              <Clock size={48} className="text-muted mb-3" />
               <h5 className="text-muted">Nenhum agendamento encontrado</h5>
               <p className="text-muted">
                 {filtros.data_inicio || filtros.status
@@ -279,7 +287,7 @@ function Agendamentos() {
                       <th>Serviço</th>
                       <th>Status</th>
                       <th>Valor</th>
-                      <th>Ações</th>
+                      <th style={{width: '140px'}}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -311,7 +319,7 @@ function Agendamentos() {
                             <Button
                               variant="outline-danger"
                               size="sm"
-                              onClick={() => handleDelete(agendamento.id)}
+                              onClick={() => handleDelete(agendamento)}
                               disabled={deleteMutation.isLoading}
                             >
                               <Trash2 size={14} />
@@ -362,6 +370,33 @@ function Agendamentos() {
           )}
         </Card.Body>
       </Card>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Exclusão</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Tem certeza que deseja excluir o agendamento de <strong>{agendamentoToDelete?.cliente_nome}</strong> com <strong>{agendamentoToDelete?.tatuador_nome}</strong>?
+          </p>
+          <p className="text-muted mb-0">
+            Esta ação não poderá ser desfeita.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={confirmDelete}
+            disabled={deleteMutation.isLoading}
+          >
+            {deleteMutation.isLoading ? 'Excluindo...' : 'Excluir'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

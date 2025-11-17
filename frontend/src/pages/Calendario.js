@@ -125,9 +125,9 @@ function Calendario() {
   return (
     <div className="fade-in">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="page-title">
-          <Clock size={28} className="me-2" />
-          Calendário de Agendamentos
+                <h1 className="page-title mb-0">
+          <Calendar size={28} className="me-2" />
+          Calendário
         </h1>
         <Button variant="primary" onClick={() => navigate('/agendamentos/novo')}>
           + Novo Agendamento

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Form, InputGroup, Badge, Spinner } from 'react-bootstrap';
+import { Card, Table, Button, Form, InputGroup, Badge, Spinner, Modal, Alert } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { Search, Plus, Edit, Trash2, Eye, Users, RotateCcw } from 'lucide-react';
@@ -49,6 +49,9 @@ function Clientes() {
   const [search, setSearch] = useState(getInitialSearch);
   const [page, setPage] = useState(getInitialPage);
   const limit = 10;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReativarModal, setShowReativarModal] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState(null);
 
   // Limpar storage apenas UMA VEZ se necessário
   useEffect(() => {
@@ -105,12 +108,18 @@ function Clientes() {
     refetch();
   };
 
-  const handleDelete = async (id, nome) => {
-    if (window.confirm(`Tem certeza que deseja excluir o cliente "${nome}"?`)) {
+  const handleDelete = (cliente) => {
+    setSelectedCliente(cliente);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedCliente) {
       try {
-        await clienteService.deleteCliente(id);
+        await clienteService.deleteCliente(selectedCliente.id);
         toast.success('Cliente excluído com sucesso');
         refetch();
+        setShowDeleteModal(false);
       } catch (error) {
         toast.error('Erro ao excluir cliente');
         console.error('Erro:', error);
@@ -118,12 +127,18 @@ function Clientes() {
     }
   };
 
-  const handleReativar = async (id, nome) => {
-    if (window.confirm(`Tem certeza que deseja reativar o cliente "${nome}"?`)) {
+  const handleReativar = (cliente) => {
+    setSelectedCliente(cliente);
+    setShowReativarModal(true);
+  };
+
+  const confirmReativar = async () => {
+    if (selectedCliente) {
       try {
-        await clienteService.reativarCliente(id);
+        await clienteService.reativarCliente(selectedCliente.id);
         toast.success('Cliente reativado com sucesso');
         refetch();
+        setShowReativarModal(false);
       } catch (error) {
         toast.error('Erro ao reativar cliente');
         console.error('Erro:', error);
@@ -210,7 +225,7 @@ function Clientes() {
                       <th>CPF</th>
                       <th>Cidade</th>
                       <th>Status</th>
-                      <th>Ações</th>
+                      <th style={{width: '140px'}}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -248,7 +263,7 @@ function Clientes() {
                               <Button
                                 variant="outline-danger"
                                 size="sm"
-                                onClick={() => handleDelete(cliente.id, cliente.nome)}
+                                onClick={() => handleDelete(cliente)}
                               >
                                 <Trash2 size={14} />
                               </Button>
@@ -257,7 +272,7 @@ function Clientes() {
                             <Button
                               variant="outline-success"
                               size="sm"
-                              onClick={() => handleReativar(cliente.id, cliente.nome)}
+                              onClick={() => handleReativar(cliente)}
                               title="Reativar cliente"
                             >
                               <RotateCcw size={14} className="me-1" />
@@ -323,6 +338,53 @@ function Clientes() {
           )}
         </Card.Body>
       </Card>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Desativação</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Tem certeza que deseja desativar o cliente{' '}
+            <strong>{selectedCliente?.nome}</strong>?
+          </p>
+          <Alert variant="warning" className="mb-0">
+            <small>
+              O cliente será marcado como inativo mas não será removido do sistema.
+              Você poderá reativá-lo a qualquer momento.
+            </small>
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Desativar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Confirmação de Reativação */}
+      <Modal show={showReativarModal} onHide={() => setShowReativarModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Reativação</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Tem certeza que deseja reativar o cliente <strong>{selectedCliente?.nome}</strong>?
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReativarModal(false)}>
+            Cancelar
+          </Button>
+          <Button variant="success" onClick={confirmReativar}>
+            Reativar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

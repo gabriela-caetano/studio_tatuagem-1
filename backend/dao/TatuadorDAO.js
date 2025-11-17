@@ -284,7 +284,7 @@ class TatuadorDAO {
         SELECT COUNT(*) as count 
         FROM agendamentos 
         WHERE tatuador_id = ? 
-        AND data_agendamento >= CURDATE() 
+        AND data_agendamento >= DATE('now') 
         AND status IN ('agendado', 'confirmado')
       `;
       const checkResult = await db.query(checkQuery, [id]);
