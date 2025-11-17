@@ -5,9 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { toast } from 'react-toastify';
 import { agendamentoService, clienteService, tatuadorService, servicoService } from '../services';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
 function AgendamentoForm() {
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
@@ -35,48 +37,67 @@ function AgendamentoForm() {
     ['agendamento', id],
     () => agendamentoService.getAgendamentoById(id),
     { 
-      enabled: isEditMode,
-      onSuccess: (data) => {
-        if (data?.agendamento) {
-          const agendamento = data.agendamento;
-          // Formatar data_agendamento para YYYY-MM-DD (formato do input date)
-          let dataFormatada = '';
-          if (agendamento.data_agendamento) {
-            dataFormatada = agendamento.data_agendamento.split('T')[0];
-          }
-          
-          // Verificar se o agendamento já passou (considerar hora de fim)
-          const dataHoraFim = new Date(`${dataFormatada}T${agendamento.hora_fim}`);
-          const agora = new Date();
-          setIsAgendamentoPastado(dataHoraFim < agora);
-          
-          setFormData({
-            cliente_id: agendamento.cliente_id || '',
-            tatuador_id: agendamento.tatuador_id || '',
-            servico_id: agendamento.servico_id || '',
-            data: dataFormatada,
-            hora_inicio: agendamento.hora_inicio || '',
-            hora_fim: agendamento.hora_fim || '',
-            status: agendamento.status || 'agendado',
-            valor_estimado: agendamento.valor_estimado || '',
-            descricao_tatuagem: agendamento.descricao_tatuagem || '',
-            observacoes: agendamento.observacoes || ''
-          });
-        }
-      }
+      enabled: isEditMode
     }
   );
 
+  // Atualizar form quando dados do agendamento forem carregados
+  useEffect(() => {
+    if (agendamentoData?.agendamento) {
+      const agendamento = agendamentoData.agendamento;
+      // Formatar data_agendamento para YYYY-MM-DD (formato do input date)
+      let dataFormatada = '';
+      if (agendamento.data_agendamento) {
+        dataFormatada = agendamento.data_agendamento.split('T')[0];
+      }
+      
+      // Verificar se o agendamento já passou (considerar hora de fim)
+      const dataHoraFim = new Date(`${dataFormatada}T${agendamento.hora_fim}`);
+      const agora = new Date();
+      const isPastado = dataHoraFim < agora;
+      setIsAgendamentoPastado(isPastado);
+      
+      // Para agendamentos passados, ajustar o status se não for um dos permitidos
+      let statusAjustado = agendamento.status || 'agendado';
+      if (isPastado) {
+        const statusPermitidos = ['em_andamento', 'concluido', 'cancelado'];
+        if (!statusPermitidos.includes(statusAjustado)) {
+          // Se o status atual não é permitido para passados, usar 'em_andamento' como padrão
+          statusAjustado = 'em_andamento';
+        }
+      }
+      
+      setFormData({
+        cliente_id: agendamento.cliente_id || '',
+        tatuador_id: agendamento.tatuador_id || '',
+        servico_id: agendamento.servico_id || '',
+        data: dataFormatada,
+        hora_inicio: agendamento.hora_inicio || '',
+        hora_fim: agendamento.hora_fim || '',
+        status: statusAjustado,
+        valor_estimado: agendamento.valor_estimado || '',
+        descricao_tatuagem: agendamento.descricao_tatuagem || '',
+        observacoes: agendamento.observacoes || ''
+      });
+    }
+  }, [agendamentoData]);
+
   // Buscar clientes
-  const { data: clientesData } = useQuery('clientes', () => clienteService.getClientes({ limit: 1000 }), {
+  const { data: clientesData } = useQuery('clientes', () => 
+    clienteService.getClientes({ 
+      limit: 1000,
+      ...(isAdmin() ? {} : { ativo: 1 })
+    }), {
     onSuccess: (data) => {
       console.log('📋 Clientes carregados:', data);
     }
   });
 
   // Buscar tatuadores
-  const { data: tatuadoresData } = useQuery('tatuadores-ativos', () => 
-    api.get('/tatuadores', { params: { ativo: 1 } }).then(res => res.data),
+  const { data: tatuadoresData } = useQuery('tatuadores-form', () => 
+    api.get('/tatuadores', { 
+      params: isAdmin() ? {} : { ativo: 1 } 
+    }).then(res => res.data),
     {
       onSuccess: (data) => {
         console.log('👨‍🎨 Tatuadores carregados:', data);
@@ -234,7 +255,7 @@ function AgendamentoForm() {
                     <option value="">Selecione um cliente</option>
                     {clientesData?.data?.map(cliente => (
                       <option key={cliente.id} value={cliente.id}>
-                        {cliente.nome} - {cliente.telefone}
+                        {cliente.nome} - {cliente.telefone} {!cliente.ativo && '(Inativo)'}
                       </option>
                     ))}
                   </Form.Select>
@@ -254,7 +275,7 @@ function AgendamentoForm() {
                     <option value="">Selecione um tatuador</option>
                     {tatuadoresData?.data?.map(tatuador => (
                       <option key={tatuador.id} value={tatuador.id}>
-                        {tatuador.nome}
+                        {tatuador.nome} {!tatuador.ativo && '(Inativo)'}
                       </option>
                     ))}
                   </Form.Select>

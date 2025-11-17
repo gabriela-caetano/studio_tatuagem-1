@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const TatuadorController = require('../controllers/TatuadorController');
+const { auth } = require('../middleware/auth');
+
 /**
  * @route   POST /api/tatuadores/login
  * @desc    Login de tatuador
@@ -8,10 +10,13 @@ const TatuadorController = require('../controllers/TatuadorController');
  */
 router.post('/login', TatuadorController.login);
 
+// Aplicar autenticação nas demais rotas
+router.use(auth);
+
 /**
  * @route   GET /api/tatuadores
  * @desc    Listar tatuadores com paginação e filtros
- * @access  Public
+ * @access  Private
  * @query   page, limit, search, especialidade, incluirInativos
  */
 router.get('/', TatuadorController.getAll);

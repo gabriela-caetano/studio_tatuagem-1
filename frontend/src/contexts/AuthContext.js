@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext({});
 
@@ -7,14 +8,35 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Verificar se o token ainda é válido
+  const isTokenValid = (token) => {
+    try {
+      const decoded = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      return decoded.exp > currentTime;
+    } catch (error) {
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Verificar se há um usuário logado ao carregar
     const loadUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (token) {
+        if (token && isTokenValid(token)) {
           const userData = authService.getCurrentUser();
-          setUser(userData);
+          if (userData) {
+            setUser(userData);
+          } else {
+            // Token existe mas user não, limpar
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        } else {
+          // Token inválido ou expirado
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       } catch (error) {
         console.error('Erro ao carregar usuário:', error);

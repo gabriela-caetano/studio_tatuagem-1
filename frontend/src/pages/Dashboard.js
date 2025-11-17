@@ -106,7 +106,7 @@ function Dashboard() {
                     <YAxis />
                     <Tooltip formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)} />
                     <Legend />
-                    <Line type="monotone" dataKey="total" stroke="#8884d8" name="Receita" strokeWidth={2} />
+                    <Line type="monotone" dataKey="receita" stroke="#8884d8" name="Receita" strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : <div className="text-center py-5"><p className="text-muted">Nenhum dado financeiro disponível</p></div>}

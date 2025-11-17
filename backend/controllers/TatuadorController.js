@@ -1,5 +1,7 @@
 const TatuadorDAO = require('../dao/TatuadorDAO');
 const Tatuador = require('../models/Tatuador');
+const bcrypt = require('bcryptjs');
+const db = require('../config/database');
 
 class TatuadorController {
     // Login de tatuador
@@ -66,11 +68,31 @@ class TatuadorController {
       }
 
       console.log('📤 Enviando para TatuadorDAO.create...');
-      const tatuador = await TatuadorDAO.create(req.body);
+      
+      // Adicionar senha padrão se não fornecida
+      const dadosTatuador = {
+        ...req.body,
+        senha: req.body.senha || 'User123'
+      };
+      
+      const tatuador = await TatuadorDAO.create(dadosTatuador);
       console.log('✅ Tatuador criado:', tatuador);
       
+      // Criar usuário vinculado ao tatuador
+      try {
+        const senhaHash = await bcrypt.hash('User123', 10);
+        await db.query(
+          `INSERT INTO usuarios (nome, email, senha, tipo, tatuador_id, ativo) 
+           VALUES (?, ?, ?, 'tatuador', ?, 1)`,
+          [tatuador.nome, tatuador.email, senhaHash, tatuador.id]
+        );
+        console.log('✅ Usuário criado para o tatuador');
+      } catch (userError) {
+        console.warn('⚠️ Erro ao criar usuário (pode já existir):', userError.message);
+      }
+      
       return res.status(201).json({
-        message: 'Tatuador cadastrado com sucesso',
+        message: 'Tatuador cadastrado com sucesso. Senha padrão: User123',
         data: tatuador
       });
     } catch (error) {
@@ -91,10 +113,23 @@ class TatuadorController {
         limit = 10, 
         search = '', 
         especialidade = '',
-        incluirInativos = false 
+        incluirInativos = false,
+        ativo
       } = req.query;
 
-      const apenasAtivos = incluirInativos === 'true' ? false : true;
+      // Se não for admin, sempre filtrar apenas ativos
+      let apenasAtivos;
+      if (req.usuario && req.usuario.tipo === 'admin') {
+        // Admin: se passar ativo=0, mostra inativos; se passar ativo=1, mostra ativos; se não passar, mostra todos
+        if (ativo !== undefined) {
+          apenasAtivos = ativo === '1' || ativo === 1;
+        } else {
+          apenasAtivos = incluirInativos === 'true' ? false : null; // null = todos
+        }
+      } else {
+        // Não admin ou não autenticado: sempre apenas ativos
+        apenasAtivos = true;
+      }
 
       const result = await TatuadorDAO.findAll(
         parseInt(page), 

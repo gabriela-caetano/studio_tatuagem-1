@@ -5,8 +5,10 @@ import { useQuery } from 'react-query';
 import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { clienteService } from '../services';
 import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext';
 
 function Clientes() {
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -17,7 +19,13 @@ function Clientes() {
     refetch
   } = useQuery(
     ['clientes', page, search],
-    () => clienteService.getClientes({ page, limit, search }),
+    () => clienteService.getClientes({ 
+      page, 
+      limit, 
+      search,
+      // Se for admin, não filtra por ativo (mostra todos)
+      ...(isAdmin() ? {} : { ativo: 1 })
+    }),
     {
       keepPreviousData: true,
       onError: (error) => {

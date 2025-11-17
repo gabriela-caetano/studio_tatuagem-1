@@ -34,6 +34,15 @@ class RelatorioController {
 
       const params = [];
 
+      // Se for tatuador, filtrar apenas seus agendamentos
+      if (req.usuario && req.usuario.tipo === 'tatuador') {
+        query += ' AND a.tatuador_id = ?';
+        params.push(req.usuario.id);
+      } else if (tatuadorId) {
+        query += ' AND a.tatuador_id = ?';
+        params.push(tatuadorId);
+      }
+
       if (dataInicio) {
         query += ' AND a.data_agendamento >= ?';
         params.push(dataInicio);
@@ -65,7 +74,7 @@ class RelatorioController {
         cancelados: agendamentos.filter(a => a.status === 'cancelado').length,
         faturamento: agendamentos
           .filter(a => a.status === 'concluido')
-          .reduce((sum, a) => sum + parseFloat(a.valor_final || 0), 0),
+          .reduce((sum, a) => sum + parseFloat(a.valor_final || a.valor_estimado || 0), 0),
         ticketMedio: 0
       };
 
@@ -112,7 +121,7 @@ class RelatorioController {
             DATE(a.data_agendamento) as data,
             COUNT(*) as total_agendamentos,
             COUNT(CASE WHEN a.status = 'concluido' THEN 1 END) as concluidos,
-            SUM(CASE WHEN a.status = 'concluido' THEN a.valor_final ELSE 0 END) as faturamento_dia,
+            SUM(CASE WHEN a.status = 'concluido' THEN COALESCE(a.valor_final, a.valor_estimado, 0) ELSE 0 END) as faturamento_dia,
             t.id as tatuador_id,
             t.nome as tatuador_nome
           FROM agendamentos a
@@ -136,7 +145,7 @@ class RelatorioController {
             DATE(a.data_agendamento) as data,
             COUNT(*) as total_agendamentos,
             COUNT(CASE WHEN a.status = 'concluido' THEN 1 END) as concluidos,
-            SUM(CASE WHEN a.status = 'concluido' THEN a.valor_final ELSE 0 END) as faturamento_dia,
+            SUM(CASE WHEN a.status = 'concluido' THEN COALESCE(a.valor_final, a.valor_estimado, 0) ELSE 0 END) as faturamento_dia,
             t.id as tatuador_id,
             t.nome as tatuador_nome
           FROM agendamentos a
@@ -333,7 +342,7 @@ class RelatorioController {
           COUNT(*) as total_agendamentos,
           COUNT(CASE WHEN status = 'concluido' THEN 1 END) as concluidos,
           COUNT(CASE WHEN status = 'cancelado' THEN 1 END) as cancelados,
-          SUM(CASE WHEN status = 'concluido' THEN valor_final ELSE 0 END) as faturamento
+          SUM(CASE WHEN status = 'concluido' THEN COALESCE(valor_final, valor_estimado, 0) ELSE 0 END) as faturamento
         FROM agendamentos
         WHERE strftime('%Y', data_agendamento) = ? AND strftime('%m', data_agendamento) = ?
       `, [String(anoAtual), String(mesAtual).padStart(2, '0')]);

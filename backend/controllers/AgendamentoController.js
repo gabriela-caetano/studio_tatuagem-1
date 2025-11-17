@@ -9,6 +9,11 @@ class AgendamentoController {
       const agendamentoData = req.body;
       console.log('📝 Dados recebidos:', agendamentoData);
       
+      // Se for tatuador, forçar o tatuador_id para o próprio usuário
+      if (req.usuario && req.usuario.tipo === 'tatuador') {
+        agendamentoData.tatuador_id = req.usuario.tatuador_id || req.usuario.id;
+      }
+      
       // Validar dados
       const errors = Agendamento.validate(agendamentoData);
       if (errors.length > 0) {
@@ -90,9 +95,17 @@ class AgendamentoController {
     try {
       const filters = {};
       
+      // Se for tatuador, filtrar apenas seus agendamentos
+      if (req.usuario && req.usuario.tipo === 'tatuador') {
+        filters.tatuador_id = req.usuario.tatuador_id || req.usuario.id;
+      }
+      
       // Aplicar filtros da query string
       if (req.query.cliente_id) filters.cliente_id = req.query.cliente_id;
-      if (req.query.tatuador_id) filters.tatuador_id = req.query.tatuador_id;
+      // Só permite sobrescrever tatuador_id se for admin
+      if (req.query.tatuador_id && req.usuario && req.usuario.tipo === 'admin') {
+        filters.tatuador_id = req.query.tatuador_id;
+      }
       if (req.query.status) filters.status = req.query.status;
       if (req.query.data_agendamento) filters.data_agendamento = req.query.data_agendamento;
       if (req.query.data_inicio && req.query.data_fim) {
@@ -136,6 +149,19 @@ class AgendamentoController {
         return res.status(404).json({ 
           message: 'Agendamento não encontrado' 
         });
+      }
+
+      // Se for tatuador, verificar se o agendamento é dele
+      const userTatuadorId = req.usuario.tatuador_id || req.usuario.id;
+      if (req.usuario && req.usuario.tipo === 'tatuador' && agendamentoAtual.tatuador_id !== userTatuadorId) {
+        return res.status(403).json({ 
+          message: 'Você só pode editar seus próprios agendamentos' 
+        });
+      }
+
+      // Se for tatuador, forçar o tatuador_id para o próprio usuário
+      if (req.usuario && req.usuario.tipo === 'tatuador') {
+        agendamentoData.tatuador_id = userTatuadorId;
       }
 
       // Verificar se o agendamento já passou (considerar hora de fim)

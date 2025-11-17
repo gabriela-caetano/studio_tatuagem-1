@@ -112,9 +112,32 @@ const optionalAuth = (req, res, next) => {
   }
 };
 
+// Middleware para filtrar dados por tipo de usuário
+const filterByUserType = (req, res, next) => {
+  try {
+    // Admin vê tudo, não precisa de filtros
+    if (req.usuario.tipo === 'admin') {
+      return next();
+    }
+
+    // Tatuador só vê seus próprios dados
+    if (req.usuario.tipo === 'tatuador') {
+      // Adicionar filtro de tatuador_id nas queries
+      req.tatuadorFilter = req.usuario.id;
+    }
+
+    next();
+  } catch (error) {
+    return res.status(403).json({ 
+      message: 'Erro ao aplicar filtros de acesso' 
+    });
+  }
+};
+
 module.exports = {
   auth,
   isAdmin,
   isTatuador,
-  optionalAuth
+  optionalAuth,
+  filterByUserType
 };

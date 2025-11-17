@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const ServicoController = require('../controllers/ServicoController');
+const { auth } = require('../middleware/auth');
+
+// Aplicar autenticação em todas as rotas
+router.use(auth);
 
 /**
  * @route   GET /api/servicos
  * @desc    Listar serviços (paginado)
- * @access  Public
+ * @access  Private
  * @query   page, limit, search
  */
 router.get('/', ServicoController.list);

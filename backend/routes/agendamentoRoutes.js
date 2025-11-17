@@ -1,6 +1,10 @@
 const express = require('express');
 const AgendamentoController = require('../controllers/AgendamentoController');
+const { auth } = require('../middleware/auth');
 const router = express.Router();
+
+// Aplicar autenticação em todas as rotas
+router.use(auth);
 
 /**
  * @route   POST /api/agendamentos

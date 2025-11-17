@@ -73,12 +73,17 @@ class ClienteController {
   // Listar todos os clientes
   static async findAll(req, res) {
     try {
-      const { page = 1, limit = 10, search = '' } = req.query;
+      const { page = 1, limit = 10, search = '', ativo } = req.query;
+      
+      // Se não for admin e não passar ativo, filtrar apenas ativos
+      // Se req.usuario não existir (sem autenticação), mostrar apenas ativos
+      const ativoFilter = (req.usuario && req.usuario.tipo === 'admin') ? ativo : (ativo || '1');
       
       const result = await ClienteDAO.findAll(
         parseInt(page), 
         parseInt(limit), 
-        search
+        search,
+        ativoFilter
       );
       
       res.json({

@@ -82,15 +82,17 @@ class ClienteDAO {
   }
 
   // Listar todos os clientes
-  static async findAll(page = 1, limit = 10, search = '') {
+  static async findAll(page = 1, limit = 10, search = '', ativo = null) {
     try {
       // Converter para números para evitar erro no MySQL
       const pageNum = parseInt(page);
       const limitNum = parseInt(limit);
       const offset = (pageNum - 1) * limitNum;
       
-      let query = 'SELECT * FROM clientes WHERE ativo = 1';
-      let countQuery = 'SELECT COUNT(*) as total FROM clientes WHERE ativo = 1';
+      // Se ativo for especificado, filtrar. Se não, mostrar todos
+      let whereClause = ativo !== null ? `WHERE ativo = ${ativo === '1' || ativo === 1 ? 1 : 0}` : 'WHERE 1=1';
+      let query = `SELECT * FROM clientes ${whereClause}`;
+      let countQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause}`;
       const queryParams = [];
       
       if (search) {

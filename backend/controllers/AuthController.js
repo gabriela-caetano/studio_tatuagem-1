@@ -86,9 +86,15 @@ class AuthController {
             return res.status(500).json({ message: 'Erro ao validar senha' });
           }
           const token = jwt.sign(
-            { id: usuario.id, tipo: usuario.tipo },
+            { 
+              id: usuario.id, 
+              tipo: usuario.tipo,
+              tatuador_id: usuario.tatuador_id || null,
+              email: usuario.email,
+              nome: usuario.nome
+            },
             process.env.JWT_SECRET || 'studio_secret',
-            { expiresIn: '8h' }
+            { expiresIn: process.env.JWT_EXPIRES_IN || '6h' }
           );
           db.db.run('UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE id = ?', [usuario.id], (err2) => {
             if (err2) console.error('Erro ao atualizar último login:', err2);

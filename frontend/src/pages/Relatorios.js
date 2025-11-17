@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Tabs, Tab, Form, Row, Col, Button, Table, Badge } from 'react-bootstrap';
 import { useQuery } from 'react-query';
 import { agendamentoService, clienteService, tatuadorService } from '../services';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   BarChart3, 
   Download, 
@@ -31,6 +32,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 function Relatorios() {
+  const { isAdmin } = useAuth();
   const [dataInicio, setDataInicio] = useState(moment().startOf('month').format('YYYY-MM-DD'));
   const [dataFim, setDataFim] = useState(moment().endOf('month').format('YYYY-MM-DD'));
 
@@ -41,11 +43,11 @@ function Relatorios() {
   );
 
   const { data: clientesData } = useQuery('relatorios-clientes', () =>
-    clienteService.getClientes()
+    clienteService.getClientes(isAdmin() ? {} : { ativo: 1 })
   );
 
   const { data: tatuadoresData } = useQuery('relatorios-tatuadores', () =>
-    tatuadorService.getTatuadores()
+    tatuadorService.getTatuadores(isAdmin() ? {} : { ativo: 1 })
   );
 
   const agendamentos = agendamentosData?.agendamentos || [];

@@ -11,14 +11,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { tatuadorService } from '../services';
+import { useAuth } from '../contexts/AuthContext';
 
 function Tatuadores() {
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTatuador, setSelectedTatuador] = useState(null);
-  const [ativoFilter, setAtivoFilter] = useState('todos'); // 'todos', 'ativos', 'inativos'
+  const [ativoFilter, setAtivoFilter] = useState(isAdmin() ? 'todos' : 'ativos'); // Admin vê todos por padrão
 
   // Buscar tatuadores
   const { data, isLoading, error } = useQuery(
@@ -29,6 +31,11 @@ function Tatuadores() {
         limit: 10,
         nome: search
       };
+      
+      // Se não for admin e tentar ver inativos, força mostrar apenas ativos
+      if (!isAdmin() && ativoFilter !== 'ativos') {
+        setAtivoFilter('ativos');
+      }
       
       if (ativoFilter === 'ativos') params.ativo = '1';
       if (ativoFilter === 'inativos') params.ativo = '0';

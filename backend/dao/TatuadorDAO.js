@@ -107,12 +107,21 @@ class TatuadorDAO {
       const queryParams = [];
       const countParams = [];
       
-      if (apenasAtivos) {
+      // Se apenasAtivos for true, filtrar apenas ativos
+      // Se for false, filtrar apenas inativos
+      // Se for null/undefined, mostrar todos
+      if (apenasAtivos === true) {
         query += ' AND ativo = ?';
         countQuery += ' AND ativo = ?';
         queryParams.push(1);
         countParams.push(1);
+      } else if (apenasAtivos === false) {
+        query += ' AND ativo = ?';
+        countQuery += ' AND ativo = ?';
+        queryParams.push(0);
+        countParams.push(0);
       }
+      // Se apenasAtivos for null, não adiciona filtro (mostra todos)
       
       if (search) {
         query += ' AND (nome LIKE ? OR email LIKE ? OR telefone LIKE ?)';
