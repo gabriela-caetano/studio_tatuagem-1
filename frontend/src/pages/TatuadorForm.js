@@ -61,7 +61,13 @@ function TatuadorForm() {
         : tatuador.disponibilidade;
 
       setFormData({
-        ...tatuador,
+        nome: tatuador.nome || '',
+        email: tatuador.email || '',
+        telefone: tatuador.telefone || '',
+        cpf: tatuador.cpf || '',
+        especialidades: tatuador.especialidades || '',
+        portfolio_url: tatuador.portfolio_url || '',
+        valor_hora: tatuador.valor_hora || '',
         disponibilidade: disponibilidade || formData.disponibilidade,
       });
     } catch (error) {

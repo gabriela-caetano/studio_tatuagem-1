@@ -74,7 +74,7 @@ class RelatorioController {
         cancelados: agendamentos.filter(a => a.status === 'cancelado').length,
         faturamento: agendamentos
           .filter(a => a.status === 'concluido')
-          .reduce((sum, a) => sum + parseFloat(a.valor_final || a.valor_estimado || 0), 0),
+          .reduce((sum, a) => sum + parseFloat(a.valor_final !== null ? a.valor_final : (a.valor_estimado || 0)), 0),
         ticketMedio: 0
       };
 
@@ -220,8 +220,8 @@ class RelatorioController {
           COUNT(a.id) as total_agendamentos,
           COUNT(CASE WHEN a.status = 'concluido' THEN 1 END) as concluidos,
           COUNT(CASE WHEN a.status = 'cancelado' THEN 1 END) as cancelados,
-          SUM(CASE WHEN a.status = 'concluido' THEN a.valor_final ELSE 0 END) as faturamento,
-          AVG(CASE WHEN a.status = 'concluido' THEN a.valor_final ELSE NULL END) as ticket_medio
+          SUM(CASE WHEN a.status = 'concluido' THEN COALESCE(a.valor_final, a.valor_estimado, 0) ELSE 0 END) as faturamento,
+          AVG(CASE WHEN a.status = 'concluido' THEN COALESCE(a.valor_final, a.valor_estimado, 0) ELSE NULL END) as ticket_medio
         FROM tatuadores t
         LEFT JOIN agendamentos a ON t.id = a.tatuador_id
         WHERE t.ativo = 1
@@ -281,7 +281,7 @@ class RelatorioController {
           c.data_cadastro,
           COUNT(a.id) as total_agendamentos,
           COUNT(CASE WHEN a.status = 'concluido' THEN 1 END) as agendamentos_concluidos,
-          SUM(CASE WHEN a.status = 'concluido' THEN a.valor_final ELSE 0 END) as valor_total_gasto,
+          SUM(CASE WHEN a.status = 'concluido' THEN COALESCE(a.valor_final, a.valor_estimado, 0) ELSE 0 END) as valor_total_gasto,
           MAX(a.data_agendamento) as ultimo_agendamento
         FROM clientes c
         LEFT JOIN agendamentos a ON c.id = a.cliente_id

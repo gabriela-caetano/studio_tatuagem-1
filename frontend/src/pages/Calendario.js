@@ -7,7 +7,7 @@ import { Card, Badge, Modal, Button, Row, Col } from 'react-bootstrap';
 import { useQuery } from 'react-query';
 import { agendamentoService } from '../services';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, DollarSign, FileText } from 'lucide-react';
+import { Calendar, Clock, User, DollarSign, FileText, Phone, CheckCircle, Settings, PenTool } from 'lucide-react';
 
 moment.locale('pt-br');
 const localizer = momentLocalizer(moment);
@@ -39,7 +39,8 @@ function Calendario() {
 
   const { data: agendamentos, isLoading } = useQuery(
     ['agendamentos-calendario', periodo],
-    () => agendamentoService.getAgendamentos(periodo)
+    () => agendamentoService.getAgendamentos(periodo),
+    { keepPreviousData: true }
   );
 
   const eventos = agendamentos?.agendamentos?.map(ag => {
@@ -204,7 +205,7 @@ function Calendario() {
                     <Calendar size={20} className="me-2 text-info" />
                     <div>
                       <small className="text-muted d-block">Data</small>
-                      <strong>{moment(eventoSelecionado.data).format('DD/MM/YYYY')}</strong>
+                      <strong>{moment(eventoSelecionado.data_agendamento).format('DD/MM/YYYY')}</strong>
                     </div>
                   </div>
                   <div className="d-flex align-items-center mb-3">
@@ -219,47 +220,72 @@ function Calendario() {
 
               <Row className="mb-3">
                 <Col md={6}>
-                  <div className="mb-3">
-                    <small className="text-muted d-block">Serviço</small>
-                    <strong>{eventoSelecionado.servico_nome || 'Personalizado'}</strong>
+                  <div className="d-flex align-items-center mb-3">
+                    <Settings size={20} className="me-2 text-secondary" />
+                    <div>
+                      <small className="text-muted d-block">Serviço</small>
+                      <strong>{eventoSelecionado.servico_nome || 'Personalizado'}</strong>
+                    </div>
                   </div>
                 </Col>
                 <Col md={6}>
-                  <div className="mb-3">
-                    <small className="text-muted d-block">Status</small>
-                    {getStatusBadge(eventoSelecionado.status)}
+                  <div className="d-flex align-items-center mb-3">
+                    <CheckCircle size={20} className="me-2 text-primary" />
+                    <div>
+                      <small className="text-muted d-block">Status</small>
+                      {getStatusBadge(eventoSelecionado.status)}
+                    </div>
                   </div>
                 </Col>
               </Row>
 
+              {eventoSelecionado.cliente_telefone && (
+                <div className="d-flex align-items-center mb-3">
+                  <Phone size={20} className="me-2 text-success" />
+                  <div>
+                    <small className="text-muted d-block">Telefone do Cliente</small>
+                    <strong>{eventoSelecionado.cliente_telefone}</strong>
+                  </div>
+                </div>
+              )}
+
               {eventoSelecionado.valor_estimado && (
-                <div className="mb-3">
-                  <div className="d-flex align-items-center">
-                    <DollarSign size={20} className="me-2 text-success" />
-                    <div>
-                      <small className="text-muted d-block">Valor Estimado</small>
-                      <strong>R$ {parseFloat(eventoSelecionado.valor_estimado).toFixed(2)}</strong>
-                    </div>
+                <div className="d-flex align-items-center mb-3">
+                  <DollarSign size={20} className="me-2 text-success" />
+                  <div>
+                    <small className="text-muted d-block">Valor Estimado</small>
+                    <strong>R$ {parseFloat(eventoSelecionado.valor_estimado).toFixed(2)}</strong>
+                  </div>
+                </div>
+              )}
+
+              {eventoSelecionado.valor_final && (
+                <div className="d-flex align-items-center mb-3">
+                  <DollarSign size={20} className="me-2 text-success" />
+                  <div>
+                    <small className="text-muted d-block">Valor Final</small>
+                    <strong>R$ {parseFloat(eventoSelecionado.valor_final).toFixed(2)}</strong>
+                  </div>
+                </div>
+              )}
+
+              {eventoSelecionado.descricao_tatuagem && (
+                <div className="d-flex align-items-start mb-3">
+                  <PenTool size={20} className="me-2 text-dark mt-1" />
+                  <div>
+                    <small className="text-muted d-block">Descrição da Tatuagem</small>
+                    <p className="mb-0">{eventoSelecionado.descricao_tatuagem}</p>
                   </div>
                 </div>
               )}
 
               {eventoSelecionado.observacoes && (
-                <div className="mb-3">
-                  <div className="d-flex align-items-start">
-                    <FileText size={20} className="me-2 text-muted mt-1" />
-                    <div>
-                      <small className="text-muted d-block">Observações</small>
-                      <p className="mb-0">{eventoSelecionado.observacoes}</p>
-                    </div>
+                <div className="d-flex align-items-start mb-3">
+                  <FileText size={20} className="me-2 text-muted mt-1" />
+                  <div>
+                    <small className="text-muted d-block">Observações</small>
+                    <p className="mb-0">{eventoSelecionado.observacoes}</p>
                   </div>
-                </div>
-              )}
-
-              {eventoSelecionado.cliente_telefone && (
-                <div className="mb-3">
-                  <small className="text-muted d-block">Telefone do Cliente</small>
-                  <strong>{eventoSelecionado.cliente_telefone}</strong>
                 </div>
               )}
             </div>

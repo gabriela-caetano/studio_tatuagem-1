@@ -8,9 +8,9 @@ class AgendamentoDAO {
       const query = `
         INSERT INTO agendamentos (
           cliente_id, tatuador_id, servico_id, data_agendamento, 
-          hora_inicio, hora_fim, descricao_tatuagem, valor_estimado, 
+          hora_inicio, hora_fim, descricao_tatuagem, valor_estimado, valor_final,
           status, observacoes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const values = [
@@ -22,6 +22,7 @@ class AgendamentoDAO {
         agendamentoData.hora_fim,
         agendamentoData.descricao_tatuagem,
         agendamentoData.valor_estimado,
+        agendamentoData.valor_final,
         agendamentoData.status || 'agendado',
         agendamentoData.observacoes
       ];
@@ -236,16 +237,17 @@ class AgendamentoDAO {
   }
 
   // Atualizar status do agendamento
-  static async updateStatus(id, status, observacoes = null) {
+  static async updateStatus(id, status, observacoes = null, valor_final = null) {
     try {
       const query = `
         UPDATE agendamentos SET 
           status = ?, observacoes = COALESCE(?, observacoes), 
+          valor_final = COALESCE(?, valor_final),
           data_atualizacao = datetime('now')
         WHERE id = ?
       `;
       
-      await db.query(query, [status, observacoes, id]);
+      await db.query(query, [status, observacoes, valor_final, id]);
       
       return await this.findById(id);
     } catch (error) {
@@ -297,13 +299,16 @@ class AgendamentoDAO {
           COUNT(*) as total_agendamentos,
           COUNT(CASE WHEN status = 'concluido' THEN 1 END) as concluidos,
           COUNT(CASE WHEN status = 'cancelado' THEN 1 END) as cancelados,
-          SUM(CASE WHEN status = 'concluido' THEN valor_final ELSE 0 END) as faturamento,
-          AVG(CASE WHEN status = 'concluido' THEN valor_final ELSE 0 END) as ticket_medio
+          SUM(CASE WHEN status = 'concluido' THEN COALESCE(valor_final, valor_estimado, 0) ELSE 0 END) as faturamento,
+          AVG(CASE WHEN status = 'concluido' THEN COALESCE(valor_final, valor_estimado, 0) ELSE 0 END) as ticket_medio
         FROM agendamentos
-        WHERE YEAR(data_agendamento) = ? AND MONTH(data_agendamento) = ?
+        WHERE strftime('%Y', data_agendamento) = ? AND strftime('%m', data_agendamento) = ?
       `;
       
-      const rows = await db.query(query, [ano, mes]);
+      // Formatar mês para ter 2 dígitos
+      const mesFormatado = mes.toString().padStart(2, '0');
+      
+      const rows = await db.query(query, [ano.toString(), mesFormatado]);
       return rows[0] || {};
     } catch (error) {
       throw error;

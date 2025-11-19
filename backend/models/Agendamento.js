@@ -56,6 +56,10 @@ class Agendamento {
       errors.push('Valor estimado deve ser um número válido');
     }
 
+    if (data.valor_final && (isNaN(data.valor_final) || data.valor_final < 0)) {
+      errors.push('Valor final deve ser um número válido');
+    }
+
     if (data.status && !Object.values(this.STATUS).includes(data.status)) {
       errors.push('Status inválido');
     }

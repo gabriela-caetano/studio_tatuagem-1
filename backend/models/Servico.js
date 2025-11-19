@@ -36,8 +36,8 @@ class Servico {
       errors.push('Descrição deve ter pelo menos 5 caracteres');
     }
 
-    if (!data.preco_base || isNaN(data.preco_base) || data.preco_base < 0) {
-      errors.push('Preço base deve ser um número válido e maior que zero');
+    if (data.preco_base === undefined || data.preco_base === null || isNaN(data.preco_base) || data.preco_base < 0) {
+      errors.push('Preço base deve ser um número válido e maior ou igual a zero');
     }
 
     if (!data.duracao_estimada || isNaN(data.duracao_estimada) || data.duracao_estimada < 1) {

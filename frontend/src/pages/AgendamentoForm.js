@@ -29,6 +29,7 @@ function AgendamentoForm() {
     hora_fim: '',
     status: 'agendado',
     valor_estimado: '',
+    valor_final: '',
     descricao_tatuagem: '',
     observacoes: ''
   });
@@ -37,12 +38,12 @@ function AgendamentoForm() {
   const [verificando, setVerificando] = useState(false);
   const [isAgendamentoPastado, setIsAgendamentoPastado] = useState(false);
 
-  // Buscar dados para edição
+  // Buscar dados para edição ou visualização
   const { data: agendamentoData } = useQuery(
     ['agendamento', id],
     () => agendamentoService.getAgendamentoById(id),
     { 
-      enabled: isEditMode
+      enabled: !!id
     }
   );
 
@@ -81,6 +82,7 @@ function AgendamentoForm() {
         hora_fim: agendamento.hora_fim || '',
         status: statusAjustado,
         valor_estimado: agendamento.valor_estimado || '',
+        valor_final: agendamento.valor_final || '',
         descricao_tatuagem: agendamento.descricao_tatuagem || '',
         observacoes: agendamento.observacoes || ''
       });
@@ -201,6 +203,7 @@ function AgendamentoForm() {
     if (isAgendamentoPastado) {
       const dataToSend = {
         status: formData.status,
+        valor_final: formData.valor_final === '' ? null : formData.valor_final,
         observacoes: formData.observacoes || null
       };
       
@@ -218,6 +221,7 @@ function AgendamentoForm() {
       hora_fim: formData.hora_fim || null,
       status: formData.status,
       valor_estimado: formData.valor_estimado || 0,
+      valor_final: formData.valor_final === '' ? null : formData.valor_final,
       descricao_tatuagem: formData.descricao_tatuagem || 'Tatuagem personalizada', // Campo obrigatório
       observacoes: formData.observacoes || null
     };
@@ -227,7 +231,31 @@ function AgendamentoForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Lógica para valor_final baseado no status
+      if (name === 'status') {
+        if (value === 'cancelado') {
+          newData.valor_final = 0;
+        } else if (['agendado', 'confirmado'].includes(value)) {
+          newData.valor_final = ''; // null
+        }
+        // Se for concluido ou em_andamento, mantém o valor atual ou permite edição
+      }
+
+      // Preencher valor estimado automaticamente ao selecionar serviço
+      if (name === 'servico_id') {
+        if (value) {
+          const servicoSelecionado = servicosData?.data?.find(s => s.id.toString() === value.toString());
+          if (servicoSelecionado && servicoSelecionado.preco_base) {
+            newData.valor_estimado = servicoSelecionado.preco_base;
+          }
+        }
+      }
+      
+      return newData;
+    });
   };
 
   return (
@@ -319,7 +347,7 @@ function AgendamentoForm() {
                     <option value="">Serviço Personalizado</option>
                     {servicosData?.data?.map(servico => (
                       <option key={servico.id} value={servico.id}>
-                        {servico.nome} - R$ {servico.preco}
+                        {servico.nome} - R$ {servico.preco_base}
                       </option>
                     ))}
                   </Form.Select>
@@ -372,7 +400,7 @@ function AgendamentoForm() {
             </Row>
 
             <Row>
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group className="mb-3">
                   <Form.Label>Hora Início *</Form.Label>
                   <Form.Control
@@ -386,7 +414,7 @@ function AgendamentoForm() {
                 </Form.Group>
               </Col>
 
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group className="mb-3">
                   <Form.Label>Hora Fim *</Form.Label>
                   <Form.Control
@@ -400,7 +428,7 @@ function AgendamentoForm() {
                 </Form.Group>
               </Col>
 
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group className="mb-3">
                   <Form.Label>Valor Estimado</Form.Label>
                   <Form.Control
@@ -415,6 +443,24 @@ function AgendamentoForm() {
                   />
                 </Form.Group>
               </Col>
+
+              {['concluido', 'em_andamento'].includes(formData.status) && (
+                <Col md={3}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Valor Final</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="valor_final"
+                      value={formData.valor_final}
+                      onChange={handleChange}
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      disabled={isView}
+                    />
+                  </Form.Group>
+                </Col>
+              )}
             </Row>
 
             <Form.Group className="mb-3">

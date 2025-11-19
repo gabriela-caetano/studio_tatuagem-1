@@ -192,7 +192,7 @@ class AgendamentoController {
         if (camposAlterados.length > 0) {
           return res.status(400).json({ 
             message: 'Agendamento já passou. Não é possível alterar: ' + camposAlterados.join(', '),
-            errors: [`Para agendamentos passados, apenas status (${statusPermitidos.join(', ')}) e observações podem ser alterados`]
+            errors: [`Para agendamentos passados, apenas status (${statusPermitidos.join(', ')}), valor final e observações podem ser alterados`]
           });
         }
 
@@ -204,17 +204,19 @@ class AgendamentoController {
           });
         }
 
-        // Permitir apenas alteração de status e observações
+        // Permitir apenas alteração de status, valor_final e observações
         const dadosPermitidos = {
           status: agendamentoData.status || agendamentoAtual.status,
-          observacoes: agendamentoData.observacoes !== undefined ? agendamentoData.observacoes : agendamentoAtual.observacoes
+          observacoes: agendamentoData.observacoes !== undefined ? agendamentoData.observacoes : agendamentoAtual.observacoes,
+          valor_final: agendamentoData.valor_final !== undefined ? agendamentoData.valor_final : agendamentoAtual.valor_final
         };
 
         // Usar updateStatus que é mais adequado para atualizar apenas status e observações
         const agendamentoAtualizado = await AgendamentoDAO.updateStatus(
           id, 
           dadosPermitidos.status, 
-          dadosPermitidos.observacoes
+          dadosPermitidos.observacoes,
+          dadosPermitidos.valor_final
         );
         
         return res.json({
@@ -279,11 +281,11 @@ class AgendamentoController {
     }
   }
 
-  // Atualizar status do agendamento
+    // Atualizar status do agendamento
   static async updateStatus(req, res) {
     try {
       const { id } = req.params;
-      const { status, observacoes } = req.body;
+      const { status, observacoes, valor_final } = req.body;
       
       if (!status) {
         return res.status(400).json({ 
@@ -304,7 +306,15 @@ class AgendamentoController {
         });
       }
 
-      const agendamentoAtualizado = await AgendamentoDAO.updateStatus(id, status, observacoes);
+      // Se for tatuador, verificar se o agendamento é dele
+      const userTatuadorId = req.usuario.tatuador_id || req.usuario.id;
+      if (req.usuario && req.usuario.tipo === 'tatuador' && agendamento.tatuador_id !== userTatuadorId) {
+        return res.status(403).json({ 
+          message: 'Você só pode alterar o status de seus próprios agendamentos' 
+        });
+      }
+
+      const agendamentoAtualizado = await AgendamentoDAO.updateStatus(id, status, observacoes, valor_final);
       
       res.json({
         message: 'Status atualizado com sucesso',

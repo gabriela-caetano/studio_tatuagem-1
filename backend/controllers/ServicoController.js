@@ -92,8 +92,8 @@ class ServicoController {
         return res.status(400).json({ error: 'Nome é obrigatório' });
       }
       
-      if (!preco_base || preco_base <= 0) {
-        return res.status(400).json({ error: 'Preço base deve ser maior que zero' });
+      if (preco_base === undefined || preco_base === null || preco_base < 0) {
+        return res.status(400).json({ error: 'Preço base deve ser maior ou igual a zero' });
       }
 
       if (!duracao_estimada || duracao_estimada <= 0) {
@@ -134,8 +134,8 @@ class ServicoController {
         return res.status(400).json({ error: 'Nome é obrigatório' });
       }
       
-      if (preco_base && preco_base <= 0) {
-        return res.status(400).json({ error: 'Preço base deve ser maior que zero' });
+      if (preco_base !== undefined && preco_base !== null && preco_base < 0) {
+        return res.status(400).json({ error: 'Preço base deve ser maior ou igual a zero' });
       }
 
       if (duracao_estimada && duracao_estimada <= 0) {
