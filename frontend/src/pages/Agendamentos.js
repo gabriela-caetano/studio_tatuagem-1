@@ -296,7 +296,7 @@ function Agendamentos() {
                         <td>{agendamento.tatuador_nome}</td>
                         <td>{agendamento.servico_nome || 'Personalizado'}</td>
                         <td>{getStatusBadge(agendamento.status)}</td>
-                        <td>R$ {parseFloat(agendamento.valor_estimado || 0).toFixed(2)}</td>
+                        <td>R$ {parseFloat(agendamento.valor_final || agendamento.valor_estimado || 0).toFixed(2)}</td>
                         <td>
                           <div className="d-flex gap-1">
                             <Button
