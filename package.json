@@ -1,0 +1,17 @@
+{
+  "name": "studio-tatuagem",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd backend && npm install && cd ../frontend && npm install",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.4.6",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "cypress": "^12.0.0"
+  }
+}
